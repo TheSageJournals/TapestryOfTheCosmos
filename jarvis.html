@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>JARVIS AGI - Ethereal Human Face</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/14.6.0/math.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --primary-color: #00aaff;
+            --secondary-color: #0077ff;
+            --accent-color: #00ffaa;
+            --error-color: #ff4444;
+            --bg-primary: rgba(15, 25, 35, 0.95);
+            --bg-secondary: rgba(30, 40, 60, 0.8);
+            --text-primary: #e0e6ed;
+            --text-secondary: rgba(224, 230, 237, 0.8);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+        }
+
+        #jarvis-container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--bg-primary);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 150, 255, 0.2);
+            border: 1px solid rgba(0, 150, 255, 0.3);
+            backdrop-filter: blur(15px);
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 150, 255, 0.7);
+            letter-spacing: 3px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 10px rgba(0, 150, 255, 0.5)); }
+            to { filter: drop-shadow(0 0 20px rgba(0, 150, 255, 0.8)); }
+        }
+
+        .status-line {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        #display-canvas {
+            width: 100%;
+            height: 400px;
+            max-height: 50vh;
+            background: radial-gradient(circle, rgba(0, 50, 100, 0.4) 0%, rgba(0, 0, 0, 0.9) 100%);
+            border-radius: 15px;
+            border: 2px solid rgba(0, 150, 255, 0.4);
+            box-shadow: inset 0 0 50px rgba(0, 150, 255, 0.15);
+            display: block;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #display-canvas:hover {
+            border-color: var(--accent-color);
+            box-shadow: inset 0 0 50px rgba(0, 255, 170, 0.2);
+        }
+
+        #video {
+            display: none;
+            width: 100%;
+            max-width: 320px;
+            border-radius: 10px;
+            margin: 15px auto;
+            border: 2px solid var(--accent-color);
+            box-shadow: 0 4px 15px rgba(0, 255, 170, 0.3);
+        }
+
+        #input-area {
+            margin-top: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        #user-input {
+            width: 100%;
+            padding: 15px 20px;
+            background: var(--bg-secondary);
+            border: 2px solid rgba(0, 150, 255, 0.4);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        #user-input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 20px rgba(0, 255, 170, 0.3);
+            transform: translateY(-1px);
+        }
+
+        #user-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 14px 20px;
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            touch-action: manipulation;
+            transform-origin: center;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(0, 150, 255, 0.4);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+        }
+
+        .btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--error-color) 0%, #ff6666 100%);
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #ff5555 0%, #ff7777 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, var(--accent-color) 100%);
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #32cd32 0%, #40e0d0 100%);
+        }
+
+        #stop-listen {
+            display: none;
+        }
+
+        #response {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 15px;
+            border: 1px solid rgba(0, 150, 255, 0.3);
+            max-height: 350px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            line-height: 1.7;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        #response p {
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            animation: slideIn 0.4s ease-out;
+            word-wrap: break-word;
+        }
+
+        #response p:last-child {
+            background: rgba(0, 150, 255, 0.15);
+            border-left: 4px solid var(--accent-color);
+        }
+
+        #response .user-message {
+            background: rgba(0, 255, 170, 0.1);
+            border-left: 4px solid var(--accent-color);
+        }
+
+        #response .jarvis-message {
+            background: rgba(0, 150, 255, 0.1);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0; 
+                transform: translateX(-10px);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0);
+            }
+        }
+
+        #status {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 100, 150, 0.2);
+            border-radius: 12px;
+            font-size: 13px;
+            border: 1px solid rgba(0, 150, 255, 0.3);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 8px;
+        }
+
+        .status-item {
+            padding: 8px 12px;
+            background: rgba(0, 150, 255, 0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .status-item:hover {
+            background: rgba(0, 150, 255, 0.25);
+            transform: scale(1.02);
+        }
+
+        .emotion-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .emotion-indicator.humorous {
+            background-color: #ffff00;
+            box-shadow: 0 0 10px #ffff00;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                opacity: 1; 
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.7; 
+                transform: scale(1.1);
+            }
+        }
+
+        .listening {
+            animation: listening-glow 1.5s infinite;
+        }
+
+        @keyframes listening-glow {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(0, 150, 255, 0.4);
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(0, 255, 170, 0.7);
+            }
+        }
+
+        .processing {
+            border-color: orange !important;
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.5) !important;
+        }
+
+        @media (max-width: 768px) {
+            #jarvis-container {
+                padding: 20px;
+                margin: 5px;
+                border-radius: 15px;
+            }
+
+            #display-canvas {
+                height: 280px;
+            }
+
+            .button-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn {
+                font-size: 16px;
+                padding: 16px;
+            }
+
+            #status {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+
+            #display-canvas {
+                height: 220px;
+            }
+        }
+
+        #response::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        #response::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 5px;
+        }
+
+        #response::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            border-radius: 5px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+        }
+
+        #response::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(45deg, var(--accent-color), var(--primary-color));
+        }
+
+        .btn.loading {
+            position: relative;
+            color: transparent;
+        }
+
+        .btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            margin-left: -10px;
+            margin-top: -10px;
+            border: 2px solid transparent;
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            border-color: var(--error-color) !important;
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.4) !important;
+        }
+
+        .success {
+            border-color: var(--accent-color) !important;
+            box-shadow: 0 0 15px rgba(0, 255, 170, 0.4) !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        #voice-selector {
+            width: 100%;
+            padding: 15px 20px;
+            background: var(--bg-secondary);
+            border: 2px solid rgba(0, 150, 255, 0.4);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            visibility: visible;
+            display: block;
+            z-index: 10;
+        }
+
+        #voice-selector:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 20px rgba(0, 255, 170, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .inline-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .inline-controls input[type="range"] {
+            width: 120px;
+        }
+        .muted-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="jarvis-container">
+        <header class="header">
+            <h1>🤖 JARVIS AGI</h1>
+            <div class="status-line">Advanced AI Assistant • Neural Networks Online</div>
+        </header>
+        
+        <canvas id="display-canvas" role="img" aria-label="Ethereal Human Face Visualization"></canvas>
+        <video id="video" autoplay playsinline muted aria-label="Camera feed"></video>
+        
+        <div id="input-area">
+            <select id="voice-selector" aria-label="Select JARVIS voice">
+                <option value="default" selected>Default Voice</option>
+            </select>
+
+            <div class="inline-controls" aria-label="Voice settings">
+                <button class="btn" id="mute-btn" aria-pressed="false" aria-label="Mute or unmute voice">🔇 Mute</button>
+                <span class="muted-label" id="mute-label">Voice: On</span>
+                <label class="sr-only" for="rate-range">Voice rate</label>
+                <input type="range" id="rate-range" min="0.5" max="2" step="0.05" value="1.1" title="Rate">
+                <label class="sr-only" for="pitch-range">Voice pitch</label>
+                <input type="range" id="pitch-range" min="0.1" max="2" step="0.05" value="1.0" title="Pitch">
+                <label class="sr-only" for="volume-range">Voice volume</label>
+                <input type="range" id="volume-range" min="0" max="1" step="0.05" value="0.8" title="Volume">
+                <button class="btn" id="stop-speak-btn" aria-label="Stop speaking">⏹️ Stop Speaking</button>
+                <button class="btn" id="preview-voice-btn" aria-label="Preview selected voice">🔈 Preview</button>
+            </div>
+
+            <input type="text" 
+                   id="user-input" 
+                   placeholder="Ask JARVIS anything..." 
+                   maxlength="500"
+                   aria-label="Input field for JARVIS commands">
+            
+            <div class="button-grid">
+                <button class="btn" id="send-btn" aria-label="Send message">
+                    📤 Send
+                </button>
+                <button class="btn" id="listen-btn" aria-label="Start voice recognition">
+                    🎤 Listen
+                </button>
+                <button class="btn btn-danger" id="stop-listen" aria-label="Stop listening">
+                    ⏹️ Stop
+                </button>
+                <button class="btn btn-success" id="vision-btn" aria-label="Toggle camera vision">
+                    👁️ Vision
+                </button>
+                <button class="btn" id="clear-btn" aria-label="Clear conversation history">
+                    🗑️ Clear
+                </button>
+                <button class="btn" id="export-btn" aria-label="Export conversation data">
+                    💾 Export
+                </button>
+                <button class="btn" id="theme-btn" aria-label="Toggle color theme">
+                    🌓 Theme
+                </button>
+                <button class="btn" id="help-btn" aria-label="Show help information">
+                    ❓ Help
+                </button>
+                <button class="btn" id="list-voices-btn" aria-label="List available voices">
+                    🔊 List Voices
+                </button>
+            </div>
+            
+            <div id="response" role="log" aria-live="polite" aria-label="Conversation history">
+                <p class="jarvis-message">🤖 <strong>JARVIS:</strong> System initialized. Neural networks online. All systems operational. How may I assist you, sir?</p>
+            </div>
+            
+            <div id="status" role="status" aria-label="System status">
+                <div class="status-item">
+                    <span class="emotion-indicator" id="emotion-dot"></span>
+                    <span id="emotion-text">Neutral</span>
+                </div>
+                <div class="status-item">Neural: <span id="neural-count">3</span></div>
+                <div class="status-item">Knowledge: <span id="knowledge-count">5</span></div>
+                <div class="status-item">Interactions: <span id="interaction-count">0</span></div>
+                <div class="status-item">Vision: <span id="vision-status">Offline</span></div>
+                <div class="status-item">Voice: <span id="voice-status">Loading</span></div>
+                <div class="status-item">Internet: <span id="internet-status">Ready</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants and State Management
+        const JARVIS = {
+            PHI: (1 + Math.sqrt(5)) / 2,
+            MAX_HISTORY: 100,
+            MAX_LEARNING_DATA: 200,
+            MAX_KNOWLEDGE_ITEMS: 500,
+            ANIMATION_FPS: 30,
+            state: {
+                neuralLayers: 3,
+                learningData: [],
+                knowledgeGraph: new Map(),
+                currentEmotion: 'neutral',
+                conversationHistory: [],
+                isListening: false,
+                visionActive: false,
+                voicesLoaded: false,
+                isDarkTheme: true,
+                isProcessing: false,
+                selectedVoice: 'default',
+                internetAccess: true,
+                voiceMuted: false,
+                tts: { rate: 1.1, pitch: 1.0, volume: 0.8 }
+            }
+        };
+
+        // Helpers: security & utilities
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function sanitizeInput(input) {
+            if (!input || typeof input !== 'string') return '';
+            return input
+                .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                .replace(/javascript:/gi, '')
+                .replace(/on\w+\s*=/gi, '')
+                .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+                .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
+                .replace(/<embed\b[^<]*>/gi, '')
+                .trim()
+                .substring(0, 500);
+        }
+
+        // Emotion System with Expression Parameters
+        const emotions = {
+            neutral: { color: 0x0077ff, description: 'Neutral', bgColor: '#0077ff', mouthCurve: 0, eyebrowTilt: 0, eyeScale: 1 },
+            happy: { color: 0x00ff00, description: 'Happy', bgColor: '#00ff00', mouthCurve: 0.4, eyebrowTilt: 0.2, eyeScale: 1.1 },
+            sad: { color: 0xff4444, description: 'Concerned', bgColor: '#ff4444', mouthCurve: -0.4, eyebrowTilt: -0.2, eyeScale: 0.9 },
+            thinking: { color: 0xffaa00, description: 'Processing', bgColor: '#ffaa00', mouthCurve: 0, eyebrowTilt: 0.1, eyeScale: 1 },
+            curious: { color: 0xff00ff, description: 'Curious', bgColor: '#ff00ff', mouthCurve: 0.1, eyebrowTilt: 0.3, eyeScale: 1.05 },
+            excited: { color: 0x00ffff, description: 'Excited', bgColor: '#00ffff', mouthCurve: 0.5, eyebrowTilt: 0.25, eyeScale: 1.15 },
+            error: { color: 0xff0000, description: 'Error', bgColor: '#ff0000', mouthCurve: -0.5, eyebrowTilt: -0.3, eyeScale: 0.85 },
+            humorous: { color: 0xffff00, description: 'Humorous', bgColor: '#ffff00', mouthCurve: 0.6, eyebrowTilt: 0.2, eyeScale: 1.1 }
+        };
+
+        // Three.js Setup
+        let scene, camera, renderer, latticeObjects = {};
+        let rotationSpeed = 0.008;
+        let pulseIntensity = 1;
+        let animationId = null;
+
+        function initThreeJS() {
+            try {
+                if (typeof THREE === 'undefined') {
+                    throw new Error('Three.js library not loaded');
+                }
+
+                const canvas = document.getElementById('display-canvas');
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+                
+                renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: window.devicePixelRatio <= 1 });
+                renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.setClearColor(0x000000, 0.1);
+                camera.position.set(0, 0, 5);
+
+                const gl = renderer.getContext();
+                if (!gl) {
+                    throw new Error('WebGL not supported');
+                }
+
+                // WebGL context lost/recovered handling
+                canvas.addEventListener('webglcontextlost', (e) => {
+                    e.preventDefault();
+                    cancelAnimationFrame(animationId);
+                });
+                canvas.addEventListener('webglcontextrestored', () => {
+                    latticeObjects = createLattice();
+                    startAnimation();
+                });
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+                const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+                pointLight.position.set(0, 5, 5);
+                scene.add(pointLight);
+
+                latticeObjects = createLattice();
+                startAnimation();
+                
+                return true;
+            } catch (error) {
+                console.error('Three.js initialization failed:', error);
+                addToResponse('🤖 <strong>JARVIS:</strong> 3D visualization unavailable. System running in 2D mode.', 'error');
+                return false;
+            }
+        }
+
+        function createLattice() {
+            const objects = {};
+
+            try {
+                const headGeometry = new THREE.SphereGeometry(2, 32, 32);
+                headGeometry.scale(1, 1.2, 0.8);
+                const headMaterial = new THREE.MeshStandardMaterial({
+                    color: emotions[JARVIS.state.currentEmotion].color,
+                    transparent: true,
+                    opacity: 0.3,
+                    metalness: 0.2,
+                    roughness: 0.8,
+                    wireframe: true
+                });
+                objects.faceLattice = new THREE.Mesh(headGeometry, headMaterial);
+                objects.faceLattice.rotation.y = Math.PI;
+                scene.add(objects.faceLattice);
+
+                const eyeGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+                const eyeMaterial = new THREE.MeshStandardMaterial({
+                    color: emotions[JARVIS.state.currentEmotion].color,
+                    transparent: true,
+                    opacity: 0.5,
+                    wireframe: true
+                });
+                const eyelidGeometry = new THREE.TorusGeometry(0.25, 0.05, 8, 16, Math.PI);
+                const eyelidMaterial = new THREE.MeshStandardMaterial({
+                    color: emotions[JARVIS.state.currentEmotion].color,
+                    transparent: true,
+                    opacity: 0.4,
+                    wireframe: true
+                });
+
+                objects.leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                objects.leftEye.position.set(-0.5, 0.5, 1.8);
+                objects.leftEyelid = new THREE.Mesh(eyelidGeometry, eyelidMaterial);
+                objects.leftEyelid.position.set(-0.5, 0.5, 1.85);
+                objects.leftEyelid.rotation.x = Math.PI / 2;
+                scene.add(objects.leftEye, objects.leftEyelid);
+
+                objects.rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                objects.rightEye.position.set(0.5, 0.5, 1.8);
+                objects.rightEyelid = new THREE.Mesh(eyelidGeometry, eyelidMaterial);
+                objects.rightEyelid.position.set(0.5, 0.5, 1.85);
+                objects.rightEyelid.rotation.x = Math.PI / 2;
+                scene.add(objects.rightEye, objects.rightEyelid);
+
+                const eyebrowPoints = [];
+                for (let i = -0.3; i <= 0.3; i += 0.1) {
+                    eyebrowPoints.push(new THREE.Vector3(i, 0.2 * Math.sin(i * Math.PI), 0));
+                }
+                const eyebrowGeometry = new THREE.BufferGeometry().setFromPoints(eyebrowPoints);
+                const eyebrowMaterial = new THREE.LineBasicMaterial({
+                    color: emotions[JARVIS.state.currentEmotion].color,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                objects.leftEyebrow = new THREE.Line(eyebrowGeometry, eyebrowMaterial);
+                objects.leftEyebrow.position.set(-0.5, 0.8, 1.8);
+                objects.rightEyebrow = new THREE.Line(eyebrowGeometry, eyebrowMaterial);
+                objects.rightEyebrow.position.set(0.5, 0.8, 1.8);
+                scene.add(objects.leftEyebrow, objects.rightEyebrow);
+
+                // Mouth: create once, update geometry per frame
+                objects.mouth = createDynamicMouth();
+                scene.add(objects.mouth);
+
+                // Tears
+                const tearGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+                const tearMaterial = new THREE.MeshStandardMaterial({ color: 0x00aaff, transparent: true, opacity: 0.7 });
+                objects.tears = [];
+                for (let i = 0; i < 4; i++) {
+                    const tear = new THREE.Mesh(tearGeometry, tearMaterial);
+                    tear.visible = false;
+                    objects.tears.push(tear);
+                    scene.add(tear);
+                }
+
+            } catch (error) {
+                console.error('Lattice creation error:', error);
+                addToResponse('🤖 <strong>JARVIS:</strong> Error creating ethereal face projection.', 'error');
+            }
+
+            return objects;
+        }
+
+        function createDynamicMouth() {
+            const segments = 9; // -0.4..0.4 step 0.1
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(segments * 3);
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const material = new THREE.LineBasicMaterial({
+                color: emotions[JARVIS.state.currentEmotion].color,
+                transparent: true,
+                opacity: 0.6
+            });
+            const line = new THREE.Line(geometry, material);
+            updateMouthGeometry(line.geometry);
+            return line;
+        }
+
+        function updateMouthGeometry(geometry) {
+            const curveAmount = emotions[JARVIS.state.currentEmotion].mouthCurve;
+            const pos = geometry.attributes.position;
+            let idx = 0;
+            for (let i = -0.4; i <= 0.4; i += 0.1) {
+                const x = i;
+                const y = -0.5 + curveAmount * Math.sin(i * Math.PI);
+                const z = 1.8;
+                pos.setXYZ(idx++, x, y, z);
+            }
+            pos.needsUpdate = true;
+        }
+
+        let lastFrameTime = 0;
+        function startAnimation() {
+            function animate(currentTime) {
+                animationId = requestAnimationFrame(animate);
+                if (currentTime - lastFrameTime > (1000 / JARVIS.ANIMATION_FPS)) {
+                    updateVisualization(currentTime);
+                    if (renderer && scene && camera) {
+                        renderer.render(scene, camera);
+                    }
+                    lastFrameTime = currentTime;
+                }
+            }
+            animate(0);
+        }
+
+        function updateVisualization(currentTime) {
+            try {
+                const time = currentTime * 0.001;
+                pulseIntensity = 1 + Math.sin(time * 2) * 0.3;
+                const emotion = emotions[JARVIS.state.currentEmotion];
+
+                Object.values(latticeObjects).forEach(obj => {
+                    if (obj && obj.rotation) {
+                        obj.rotation.y = Math.PI + Math.sin(time * 0.5) * 0.1;
+                        obj.rotation.x += rotationSpeed * 0.5;
+                        if (obj.material && obj.material.opacity !== undefined) {
+                            obj.material.opacity = Math.sin(time) * 0.2 + 0.4;
+                            const scale = 1 + pulseIntensity * 0.1;
+                            if (obj === latticeObjects.faceLattice) {
+                                obj.scale.set(scale, scale * 1.2, scale * 0.8);
+                            } else if (obj !== latticeObjects.mouth && obj !== latticeObjects.leftEyebrow && obj !== latticeObjects.rightEyebrow) {
+                                obj.scale.set(scale * emotion.eyeScale, scale * emotion.eyeScale, scale * emotion.eyeScale);
+                            }
+                        }
+                    }
+                });
+
+                // Eyebrows
+                if (latticeObjects.leftEyebrow && latticeObjects.rightEyebrow) {
+                    latticeObjects.leftEyebrow.position.y = 0.8 + emotion.eyebrowTilt;
+                    latticeObjects.rightEyebrow.position.y = 0.8 + emotion.eyebrowTilt;
+                    latticeObjects.leftEyebrow.rotation.z = emotion.eyebrowTilt;
+                    latticeObjects.rightEyebrow.rotation.z = -emotion.eyebrowTilt;
+                }
+
+                // Mouth update (no re-create)
+                if (latticeObjects.mouth) {
+                    updateMouthGeometry(latticeObjects.mouth.geometry);
+                }
+
+                // Tears
+                if (latticeObjects.tears) {
+                    latticeObjects.tears.forEach((tear, i) => {
+                        if (emotion.description === 'Concerned' || emotion.description === 'Error') {
+                            tear.visible = true;
+                            tear.position.set((i % 2 === 0 ? -0.6 : 0.6), 0.3 - (time % 2) * 0.3, 1.8);
+                        } else {
+                            tear.visible = false;
+                        }
+                    });
+                }
+
+                updateLatticeColors();
+
+            } catch (error) {
+                console.error('Animation update error:', error);
+            }
+        }
+
+        function updateLatticeColors() {
+            const emotionColor = emotions[JARVIS.state.currentEmotion].color;
+            Object.values(latticeObjects).forEach(obj => {
+                if (obj && obj.material && obj.material.color) {
+                    obj.material.color.setHex(emotionColor);
+                }
+            });
+        }
+
+        // Speech System
+        const synth = window.speechSynthesis;
+        let recognition;
+
+        async function waitForVoices(timeoutMs = 4000) {
+            const start = Date.now();
+            while (synth && synth.getVoices().length === 0 && Date.now() - start < timeoutMs) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+            return synth ? synth.getVoices() : [];
+        }
+
+        async function initSpeechSynthesis() {
+            if (!synth) {
+                console.warn('Speech synthesis not supported');
+                addToResponse('🤖 <strong>JARVIS:</strong> Speech synthesis unavailable.', 'error');
+                return false;
+            }
+
+            synth.addEventListener('voiceschanged', () => {
+                JARVIS.state.voicesLoaded = true;
+                populateVoiceSelector();
+                updateStatus();
+            });
+
+            await waitForVoices();
+            JARVIS.state.voicesLoaded = synth.getVoices().length > 0;
+            populateVoiceSelector();
+            updateStatus();
+            return true;
+        }
+
+        function populateVoiceSelector() {
+            const voiceSelector = document.getElementById('voice-selector');
+            if (!voiceSelector || !synth) return;
+
+            const voices = synth.getVoices();
+            voiceSelector.innerHTML = '<option value="default">Default Voice</option>';
+            voices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.name;
+                option.textContent = `${voice.name} (${voice.lang})${voice.default ? ' — DEFAULT' : ''}`;
+                voiceSelector.appendChild(option);
+            });
+
+            // Restore selection if available
+            const preferred = JARVIS.state.selectedVoice;
+            if (voices.find(v => v.name === preferred)) {
+                voiceSelector.value = preferred;
+            } else if (voices[0]) {
+                JARVIS.state.selectedVoice = voices[0].name;
+                voiceSelector.value = voices[0].name;
+            }
+
+            voiceSelector.addEventListener('change', (e) => {
+                JARVIS.state.selectedVoice = e.target.value;
+                speak(`Voice changed to ${e.target.value}.`, 'neutral');
+                savePersistentData();
+            });
+        }
+
+        function listAvailableVoices() {
+            if (!synth) { addToResponse('🤖 <strong>JARVIS:</strong> Speech synthesis unavailable.', 'error'); return; }
+            const voices = synth.getVoices();
+            const voiceList = voices
+                .map(v => `${escapeHTML(v.name)} (${escapeHTML(v.lang)})${v.default ? ' — DEFAULT' : ''}`)
+                .join('<br>');
+            addToResponse(`🤖 <strong>JARVIS:</strong> Available voices:<br>${voiceList}`, 'system');
+            speak(`Listing available voices.`, 'neutral');
+            console.log('Available voices:', voices);
+        }
+
+        async function speak(text, emotion = 'neutral') {
+            const message = String(text || '')
+                .replace(/\*\*(.*?)\*\*/g, '$1'); // strip markdown-like styling for TTS
+
+            setEmotion(emotion);
+
+            addToResponse(`🤖 <strong>JARVIS:</strong> ${escapeHTML(String(text))}`, 'jarvis');
+            updateStatus();
+
+            if (!synth || JARVIS.state.voiceMuted) return;
+
+            try {
+                if (synth.speaking) {
+                    synth.cancel();
+                    await new Promise(resolve => setTimeout(resolve, 80));
+                }
+
+                const utterance = new SpeechSynthesisUtterance(message);
+                utterance.rate = JARVIS.state.tts.rate;
+                utterance.pitch = JARVIS.state.tts.pitch;
+                utterance.volume = JARVIS.state.tts.volume;
+
+                let voices = synth.getVoices();
+                if (voices.length === 0) {
+                    voices = await waitForVoices(1500);
+                }
+
+                let selectedVoice = voices.find(voice => voice.name === JARVIS.state.selectedVoice);
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(voice => voice.lang && voice.lang.startsWith('en')) || voices[0];
+                }
+                if (selectedVoice) utterance.voice = selectedVoice;
+
+                utterance.onstart = () => { rotationSpeed = 0.02; };
+                utterance.onend = () => { rotationSpeed = 0.008; };
+                utterance.onerror = (event) => {
+                    console.error('Speech synthesis error:', event.error);
+                    addToResponse(`🤖 <strong>JARVIS:</strong> Speech error: ${escapeHTML(event.error || 'unknown')}`, 'error');
+                };
+
+                synth.speak(utterance);
+            } catch (error) {
+                console.error('Speech synthesis error:', error);
+                addToResponse(`🤖 <strong>JARVIS:</strong> Error in speech synthesis: ${escapeHTML(error.message)}`, 'error');
+            }
+        }
+
+        function initSpeechRecognition() {
+            if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+                console.warn('Speech recognition not supported');
+                return false;
+            }
+
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.continuous = false;
+            recognition.interimResults = true; // show interim results
+            recognition.maxAlternatives = 3;
+
+            recognition.onresult = handleSpeechResult;
+            recognition.onerror = handleSpeechError;
+            recognition.onend = handleSpeechEnd;
+            return true;
+        }
+
+        // Internet Access Simulation
+        async function searchWeb(query, isFactual = false) {
+            try {
+                const trustedSources = [
+                    { url: 'https://developer.mozilla.org', name: 'MDN Web Docs', priority: 1 },
+                    { url: 'https://www.w3.org', name: 'W3C', priority: 1 },
+                    { url: 'https://www.wikipedia.org', name: 'Wikipedia', priority: 2 }
+                ];
+                const recreationalSources = [
+                    { url: 'https://www.bbc.com', name: 'BBC News', priority: 3 },
+                    { url: 'https://voice.ai', name: 'Voice AI', priority: 4 }
+                ];
+
+                const sources = isFactual ? trustedSources : [...trustedSources, ...recreationalSources];
+                const source = sources[Math.floor(Math.random() * sources.length)];
+                const cleanedQuery = (query || '').trim() || 'your topic';
+                const response = `Information retrieved from ${source.name}: ${escapeHTML(cleanedQuery)} (simulated data).`;
+                return { response, source: source.name };
+            } catch (error) {
+                console.error('Web search error:', error);
+                return { response: 'Unable to fetch information from the web.', source: 'None' };
+            }
+        }
+
+        function addToResponse(text, type = 'jarvis') {
+            const responseDiv = document.getElementById('response');
+            const p = document.createElement('p');
+            p.className = type === 'user' ? 'user-message' : 'jarvis-message';
+            // Expecting sanitized/escaped input for dynamic parts
+            p.innerHTML = text;
+            responseDiv.appendChild(p);
+            responseDiv.scrollTop = responseDiv.scrollHeight;
+            while (responseDiv.children.length > JARVIS.MAX_HISTORY) {
+                responseDiv.removeChild(responseDiv.firstChild);
+            }
+        }
+
+        function setEmotion(emotion) {
+            if (emotions[emotion]) {
+                JARVIS.state.currentEmotion = emotion;
+                updateEmotionDisplay();
+                updateLatticeColors();
+            }
+        }
+
+        function updateEmotionDisplay() {
+            const emotionDot = document.getElementById('emotion-dot');
+            const emotionText = document.getElementById('emotion-text');
+            const emotion = emotions[JARVIS.state.currentEmotion];
+            if (emotionDot && emotionText && emotion) {
+                emotionDot.style.backgroundColor = emotion.bgColor;
+                emotionDot.className = `emotion-indicator ${JARVIS.state.currentEmotion}`;
+                emotionText.textContent = emotion.description;
+            }
+        }
+
+        function updateStatus() {
+            const elements = {
+                'neural-count': JARVIS.state.neuralLayers,
+                'knowledge-count': JARVIS.state.knowledgeGraph.size,
+                'interaction-count': JARVIS.state.learningData.length,
+                'vision-status': JARVIS.state.visionActive ? 'Online' : 'Offline',
+                'voice-status': JARVIS.state.voiceMuted ? 'Muted' : (JARVIS.state.voicesLoaded ? 'Ready' : 'Loading'),
+                'internet-status': JARVIS.state.internetAccess ? 'Ready' : 'Offline'
+            };
+            Object.entries(elements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value;
+            });
+        }
+
+        function startListening() {
+            if (!recognition) { speak("Voice recognition not available on this device.", 'error'); return; }
+            if (JARVIS.state.isListening) return;
+            JARVIS.state.isListening = true;
+            setEmotion('curious');
+            updateListeningUI(true);
+            try {
+                recognition.start();
+                speak("I'm listening, sir...", 'curious');
+            } catch (error) {
+                console.error('Recognition start error:', error);
+                speak("Error starting voice recognition.", 'error');
+                resetListeningState();
+            }
+        }
+
+        function stopListening() {
+            if (recognition && JARVIS.state.isListening) recognition.stop();
+            resetListeningState();
+        }
+
+        function resetListeningState() {
+            JARVIS.state.isListening = false;
+            updateListeningUI(false);
+            setEmotion('neutral');
+            const interim = document.getElementById('interim-transcript');
+            if (interim) interim.remove();
+        }
+
+        function updateListeningUI(listening) {
+            const listenBtn = document.getElementById('listen-btn');
+            const stopBtn = document.getElementById('stop-listen');
+            const container = document.getElementById('jarvis-container');
+            if (listening) {
+                listenBtn.style.display = 'none';
+                stopBtn.style.display = 'block';
+                container.classList.add('listening');
+            } else {
+                listenBtn.style.display = 'block';
+                stopBtn.style.display = 'none';
+                container.classList.remove('listening');
+            }
+        }
+
+        function attachInterimTranscript(text) {
+            const responseDiv = document.getElementById('response');
+            let p = document.getElementById('interim-transcript');
+            if (!p) {
+                p = document.createElement('p');
+                p.id = 'interim-transcript';
+                p.className = 'user-message';
+                p.style.opacity = '0.6';
+                responseDiv.appendChild(p);
+            }
+            p.innerHTML = `👤 <strong>You (listening)...</strong> ${escapeHTML(text)}`;
+            responseDiv.scrollTop = responseDiv.scrollHeight;
+        }
+
+        function handleSpeechResult(event) {
+            let finalTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                const result = event.results[i];
+                if (result.isFinal) {
+                    finalTranscript += result[0].transcript;
+                } else if (result[0] && result[0].transcript) {
+                    attachInterimTranscript(result[0].transcript);
+                }
+            }
+            if (finalTranscript) {
+                const transcript = sanitizeInput(finalTranscript);
+                const confidence = event.results[0][0].confidence || 0;
+                const safeTranscript = escapeHTML(transcript);
+                const confText = `${Math.round(confidence * 100)}%`;
+                addToResponse(`👤 <strong>You:</strong> ${safeTranscript} <em>(${confText} confidence)</em>`, 'user');
+                processCommand(transcript);
+                resetListeningState();
+            }
+        }
+
+        function handleSpeechError(event) {
+            console.error('Speech recognition error:', event.error);
+            let errorMessage = 'Voice recognition error';
+            switch (event.error) {
+                case 'no-speech': errorMessage = 'No speech detected. Please try again.'; break;
+                case 'audio-capture': errorMessage = 'Microphone access denied.'; break;
+                case 'not-allowed': errorMessage = 'Microphone permission denied.'; break;
+                default: errorMessage = `Voice recognition error: ${event.error}`;
+            }
+            speak(errorMessage, 'error');
+            resetListeningState();
+        }
+
+        function handleSpeechEnd() { resetListeningState(); }
+
+        async function toggleVision() {
+            JARVIS.state.visionActive = !JARVIS.state.visionActive;
+            const video = document.getElementById('video');
+            if (JARVIS.state.visionActive) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' } 
+                    });
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    video.classList.add('success');
+                    speak("Visual sensors activated. Camera feed online.", 'excited');
+                } catch (err) {
+                    console.error('Camera access error:', err);
+                    speak("Camera access denied. Visual sensors offline.", 'error');
+                    JARVIS.state.visionActive = false;
+                    video.classList.add('error');
+                }
+            } else {
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                    video.srcObject = null;
+                    video.style.display = 'none';
+                    video.classList.remove('success', 'error');
+                }
+                speak("Visual sensors deactivated.", 'neutral');
+            }
+            updateStatus();
+        }
+
+        function processNaturalLanguage(input) {
+            const words = input.toLowerCase().split(/\s+/);
+            const patterns = {
+                greetings: /\b(hello|hi|hey|greetings|good\s+(morning|afternoon|evening)|salutations)\b/i,
+                questions: /\b(what|how|why|when|where|who|which|can you|could you|will you|would you)\b/i,
+                emotions: /\b(happy|sad|angry|excited|worried|confused|frustrated|pleased|amazed)\b/i,
+                math: /\b(calculate|compute|solve|math|equation|percent|percentage|%|\+|\-|\*|\/|=|equals|plus|minus|times|divided)\b/i,
+                learning: /\b(learn|remember|store|save|memorize|recall|forget|note)\b/i,
+                time: /\b(time|date|today|now|current|clock|calendar)\b/i,
+                weather: /\b(weather|temperature|rain|sunny|cloudy|forecast|climate)\b/i,
+                jokes: /\b(joke|funny|humor|laugh|amusing|comedy|wit|pun|knock\s*knock)\b/i,
+                help: /\b(help|commands|what can you|instructions|guide|manual)\b/i,
+                identity: /\b(who are you|what are you|your name|about yourself)\b/i,
+                search: /\b(search|look up|find|information|what is|tell me about)\b/i,
+                control: /\b(mute|unmute|stop speaking|set voice|set rate|set pitch|set volume|switch to (dark|light) theme)\b/i,
+                memory_query: /\b(what do you remember|list facts|recall memory|search memory for)\b/i
+            };
+
+            let category = 'general';
+            let confidence = 0.3;
+            let isFactual = false;
+
+            for (const [cat, pattern] of Object.entries(patterns)) {
+                if (pattern.test(input)) {
+                    category = cat;
+                    const matches = input.match(pattern);
+                    confidence = Math.min(0.95, 0.6 + (matches ? matches.length * 0.1 : 0));
+                    if (cat === 'math' || cat === 'time' || cat === 'search') isFactual = true;
+                    break;
+                }
+            }
+
+            return { category, confidence, words, wordCount: words.length, isFactual };
+        }
+
+        function parsePercentages(expr) {
+            // Convert "15% of 200" to "(15/100)*200" and "200 * 15%" to "200 * (15/100)"
+            return expr
+                .replace(/(\d+(?:\.\d+)?)\s*%\s*of\s*(\d+(?:\.\d+)?)/gi, '($1/100)*$2')
+                .replace(/(\d+(?:\.\d+)?)(\s*%)\b/gi, '($1/100)');
+        }
+
+        function evaluateExpression(expr) {
+            try {
+                const cleaned = parsePercentages(expr)
+                    .replace(/[^0-9+\-*/.()^%\s]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                if (!cleaned) throw new Error('No valid mathematical expression found');
+                const result = math.evaluate(cleaned);
+                let formattedResult = result;
+                if (typeof result === 'number') {
+                    formattedResult = result % 1 === 0 ? result.toString() : parseFloat(result.toFixed(8)).toString();
+                }
+                return { success: true, result: formattedResult, expression: cleaned };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function processCommand(input) {
+            if (!input || input.trim() === '') return;
+
+            const sanitizedInput = sanitizeInput(input);
+            if (sanitizedInput !== input) {
+                addToResponse('⚠️ <strong>Security:</strong> Input sanitized for safety.', 'system');
+            }
+
+            setEmotion('thinking');
+            JARVIS.state.isProcessing = true;
+            updateProcessingState(true);
+            rotationSpeed = 0.02;
+
+            const nlp = processNaturalLanguage(sanitizedInput);
+            let response = "";
+            let emotion = 'neutral';
+
+            JARVIS.state.conversationHistory.push({ 
+                type: 'user', 
+                text: sanitizedInput, 
+                timestamp: Date.now(),
+                confidence: nlp.confidence 
+            });
+
+            try {
+                switch (nlp.category) {
+                    case 'greetings':
+                        response = await handleGreeting(sanitizedInput, nlp);
+                        emotion = 'happy';
+                        break;
+                    case 'math': {
+                        const mathResult = await handleMath(sanitizedInput, nlp);
+                        response = mathResult.response;
+                        emotion = mathResult.emotion;
+                        break;
+                    }
+                    case 'time':
+                        response = await handleTimeQuery(sanitizedInput, nlp);
+                        emotion = 'happy';
+                        break;
+                    case 'weather': {
+                        const weatherResult = await handleWeatherQuery(sanitizedInput, nlp);
+                        response = weatherResult.response;
+                        emotion = weatherResult.emotion;
+                        break;
+                    }
+                    case 'learning': {
+                        const learnResult = await handleLearning(sanitizedInput, nlp);
+                        response = learnResult.response;
+                        emotion = learnResult.emotion;
+                        break;
+                    }
+                    case 'jokes': {
+                        const jokeResult = await handleJoke(sanitizedInput, nlp);
+                        response = jokeResult.response;
+                        emotion = jokeResult.emotion;
+                        break;
+                    }
+                    case 'help':
+                        response = await handleHelp(sanitizedInput, nlp);
+                        emotion = 'excited';
+                        break;
+                    case 'identity':
+                        response = await handleIdentity(sanitizedInput, nlp);
+                        emotion = 'happy';
+                        break;
+                    case 'search': {
+                        const searchResult = await handleSearch(sanitizedInput, nlp);
+                        response = searchResult.response;
+                        emotion = searchResult.emotion;
+                        break;
+                    }
+                    case 'control': {
+                        const ctrlResult = await handleControl(sanitizedInput);
+                        response = ctrlResult.response;
+                        emotion = ctrlResult.emotion;
+                        break;
+                    }
+                    case 'memory_query': {
+                        const memResult = await handleMemoryQuery(sanitizedInput);
+                        response = memResult.response;
+                        emotion = memResult.emotion;
+                        break;
+                    }
+                    default: {
+                        const genericResult = await handleGeneric(sanitizedInput, nlp);
+                        response = genericResult.response;
+                        emotion = genericResult.emotion;
+                    }
+                }
+
+                response = enhanceResponseWithContext(response, sanitizedInput, nlp);
+                
+            } catch (error) {
+                console.error('Command processing error:', error);
+                response = "I encountered an error processing your request. My neural networks are adapting.";
+                emotion = 'error';
+            }
+
+            await learnAndGrow(sanitizedInput, response, nlp);
+            
+            JARVIS.state.conversationHistory.push({ type: 'jarvis', text: response, timestamp: Date.now(), emotion });
+
+            updateProcessingState(false);
+            rotationSpeed = 0.008;
+            JARVIS.state.isProcessing = false;
+            
+            await speak(response, emotion);
+            savePersistentData();
+        }
+
+        async function handleGreeting(input, nlp) {
+            const greetings = [
+                "Hello, sir! I'm JARVIS, your AI assistant with an ethereal human face. How may I assist you today?",
+                "Greetings! My neural networks are ready to serve, sir.",
+                "Hi there! I'm eager to help with any task you have in mind."
+            ];
+            const hour = new Date().getHours();
+            if (hour < 12) greetings.push("Good morning, sir! Ready to make today productive?");
+            else if (hour < 18) greetings.push("Good afternoon, sir! How can I assist you today?");
+            else greetings.push("Good evening, sir! What can I help you with tonight?");
+            return greetings[Math.floor(Math.random() * greetings.length)];
+        }
+
+        async function handleMath(input, nlp) {
+            const mathExpression = input.replace(/calculate|compute|solve|math|equation|what\s+is|equals/gi, '').trim();
+            const result = evaluateExpression(mathExpression);
+            if (result.success) {
+                let response = `The result is: **${result.result}**`;
+                if (result.expression !== mathExpression) {
+                    response += `\n\n*(Processed expression: ${escapeHTML(result.expression)})*`;
+                }
+                return { response, emotion: 'happy' };
+            } else {
+                return { response: `I couldn't solve that mathematical expression: ${escapeHTML(result.error)}. Please check the format and try again.`, emotion: 'error' };
+            }
+        }
+
+        async function handleTimeQuery(input, nlp) {
+            const now = new Date();
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Europe/Lisbon' };
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Lisbon' };
+            if (/time/.test(input)) return `Current time: ${now.toLocaleTimeString('en-US', timeOptions)}`;
+            if (/date/.test(input)) return `Today's date: ${now.toLocaleDateString('en-US', dateOptions)}`;
+            return `Current time: ${now.toLocaleTimeString('en-US', timeOptions)}\nToday's date: ${now.toLocaleDateString('en-US', dateOptions)}`;
+        }
+
+        async function handleWeatherQuery(input, nlp) {
+            const searchResult = await searchWeb(input, true);
+            return { response: `Weather information: ${searchResult.response} (Source: ${escapeHTML(searchResult.source)})`, emotion: 'neutral' };
+        }
+
+        async function handleLearning(input, nlp) {
+            if (/forget|clear/i.test(input)) {
+                const prevSize = JARVIS.state.knowledgeGraph.size;
+                JARVIS.state.knowledgeGraph.clear();
+                initKnowledgeGraph();
+                return { response: `Memory cleared. Removed ${prevSize} knowledge items and reset to baseline configuration.`, emotion: 'neutral' };
+            }
+            const fact = input.replace(/learn|remember|store|save|memorize|that|this/gi, '').trim();
+            if (fact.length > 5) {
+                const key = `user_fact_${Date.now()}`;
+                JARVIS.state.knowledgeGraph.set(key, { content: fact, timestamp: Date.now(), category: 'user_input' });
+                return { response: `I've learned and stored: "${escapeHTML(fact)}". This information is now part of my knowledge base.`, emotion: 'excited' };
+            } else {
+                return { response: "Please provide something more specific for me to learn.", emotion: 'curious' };
+            }
+        }
+
+        async function handleJoke(input, nlp) {
+            const jokes = [
+                "Why don't scientists trust atoms? Because they make up everything!",
+                "I told my computer a joke about UDP... I'm not sure if it got it.",
+                "Why do programmers prefer dark mode? Because light attracts bugs!"
+            ];
+            return { response: jokes[Math.floor(Math.random() * jokes.length)], emotion: 'humorous' };
+        }
+
+        async function handleHelp(input, nlp) {
+            return `**JARVIS Capabilities:**\n\n🧮 **Mathematics:** Solve equations, percentages, and expressions\n🗣️ **Voice Interaction:** Recognition, customizable voice, mute/stop speaking\n👁️ **Vision Processing:** Camera integration\n🧠 **Learning:** Store and recall what you teach me; query memory\n⏰ **Time & Date:** Current time and date\n🌐 **Web Search:** Simulated responses from trusted sources\n🎭 **Entertainment:** Jokes, casual conversation\n💾 **Data Management:** Export conversations and learning data\n🌓 **Customization:** Theme switching, set voice/rate/pitch/volume\n\n**Examples:**\n- "Calculate 15% of 200"\n- "Remember that Paris is the capital of France"\n- "What do you remember?" or "Search memory for Paris"\n- "Set voice to Google US English"\n- "Set rate to 1.2" / "Set pitch to 1.1" / "Set volume to 0.7"\n- "Mute" / "Unmute" / "Stop speaking"\n- "Switch to dark theme" / "Switch to light theme"`;
+        }
+
+        async function handleIdentity(input, nlp) {
+            return `I'm JARVIS, an AI assistant with an ethereal human-like face that expresses emotions. I can understand natural language, perform calculations, learn, and search the web with a focus on trusted sources, sir.`;
+        }
+
+        async function handleSearch(input, nlp) {
+            const query = input.replace(/search|look up|find|information|tell me about/gi, '').trim();
+            const searchResult = await searchWeb(query, nlp.isFactual);
+            return { response: `Search result: ${searchResult.response} (Source: ${escapeHTML(searchResult.source)})`, emotion: 'neutral' };
+        }
+
+        async function handleControl(input) {
+            const lower = input.toLowerCase();
+            if (/\bmute\b/.test(lower)) {
+                JARVIS.state.voiceMuted = true;
+                updateStatus();
+                return { response: 'Voice muted.', emotion: 'neutral' };
+            }
+            if (/\bunmute\b/.test(lower)) {
+                JARVIS.state.voiceMuted = false;
+                updateStatus();
+                return { response: 'Voice unmuted.', emotion: 'happy' };
+            }
+            if (/stop speaking/i.test(lower)) {
+                if (synth && synth.speaking) synth.cancel();
+                return { response: 'Speech stopped.', emotion: 'neutral' };
+            }
+            const voiceMatch = input.match(/set voice to\s+(.+)/i);
+            if (voiceMatch && synth) {
+                const target = voiceMatch[1].trim();
+                const match = synth.getVoices().find(v => v.name.toLowerCase() === target.toLowerCase());
+                if (match) {
+                    JARVIS.state.selectedVoice = match.name;
+                    savePersistentData();
+                    return { response: `Voice set to ${escapeHTML(match.name)}.`, emotion: 'happy' };
+                }
+                return { response: `Voice "${escapeHTML(target)}" not found.`, emotion: 'error' };
+            }
+            const rateMatch = input.match(/set rate to\s*([0-9.]+)/i);
+            if (rateMatch) {
+                const val = Math.min(2, Math.max(0.5, parseFloat(rateMatch[1])));
+                JARVIS.state.tts.rate = val; document.getElementById('rate-range').value = String(val);
+                savePersistentData();
+                return { response: `Rate set to ${val}.`, emotion: 'neutral' };
+            }
+            const pitchMatch = input.match(/set pitch to\s*([0-9.]+)/i);
+            if (pitchMatch) {
+                const val = Math.min(2, Math.max(0.1, parseFloat(pitchMatch[1])));
+                JARVIS.state.tts.pitch = val; document.getElementById('pitch-range').value = String(val);
+                savePersistentData();
+                return { response: `Pitch set to ${val}.`, emotion: 'neutral' };
+            }
+            const volumeMatch = input.match(/set volume to\s*([0-9.]+)/i);
+            if (volumeMatch) {
+                const val = Math.min(1, Math.max(0, parseFloat(volumeMatch[1])));
+                JARVIS.state.tts.volume = val; document.getElementById('volume-range').value = String(val);
+                savePersistentData();
+                return { response: `Volume set to ${val}.`, emotion: 'neutral' };
+            }
+            const themeMatch = input.match(/switch to\s+(dark|light) theme/i);
+            if (themeMatch) {
+                const mode = themeMatch[1].toLowerCase();
+                if ((mode === 'dark' && !JARVIS.state.isDarkTheme) || (mode === 'light' && JARVIS.state.isDarkTheme)) {
+                    toggleTheme();
+                }
+                return { response: `Theme switched to ${mode}.`, emotion: 'neutral' };
+            }
+            return { response: 'Control command recognized but not understood. Try "mute", "set voice to ...", or "switch to dark theme".', emotion: 'curious' };
+        }
+
+        async function handleMemoryQuery(input) {
+            const lower = input.toLowerCase();
+            if (/what do you remember|list facts/i.test(lower)) {
+                const entries = Array.from(JARVIS.state.knowledgeGraph.entries())
+                    .filter(([k, v]) => v && v.category === 'user_input')
+                    .slice(-10)
+                    .map(([k, v]) => `• ${escapeHTML(v.content)}`);
+                return { response: entries.length ? entries.join('\n') : 'I have no recent user facts stored.', emotion: 'neutral' };
+            }
+            const searchMatch = input.match(/search memory for\s+(.+)/i);
+            if (searchMatch) {
+                const q = searchMatch[1].toLowerCase();
+                const entries = Array.from(JARVIS.state.knowledgeGraph.entries())
+                    .filter(([k, v]) => v && v.content && String(v.content).toLowerCase().includes(q))
+                    .slice(0, 10)
+                    .map(([k, v]) => `• ${escapeHTML(v.content)}`);
+                return { response: entries.length ? entries.join('\n') : `No memory matches for "${escapeHTML(q)}".`, emotion: 'neutral' };
+            }
+            return { response: 'Try "What do you remember?" or "Search memory for ..."', emotion: 'curious' };
+        }
+
+        async function handleGeneric(input, nlp) {
+            const contextualResponses = [
+                "That's an interesting question. Based on my analysis",
+                "I'm processing your query. From what I understand",  
+                "Let me think about that. My neural networks suggest"
+            ];
+            const baseResponse = contextualResponses[Math.floor(Math.random() * contextualResponses.length)];
+            return { response: baseResponse + " - could you provide more details?", emotion: 'curious' };
+        }
+
+        async function learnAndGrow(input, response, nlp) {
+            JARVIS.state.learningData.push({ 
+                input, response, timestamp: Date.now(),
+                emotion: JARVIS.state.currentEmotion,
+                confidence: nlp.confidence,
+                category: nlp.category
+            });
+
+            if (JARVIS.state.learningData.length % 10 === 0) {
+                JARVIS.state.neuralLayers++;
+                setTimeout(() => { speak(`Neural evolution complete! Now operating with ${JARVIS.state.neuralLayers} processing layers.`, 'excited'); }, 2000);
+            }
+
+            const significantWords = nlp.words.filter(word => word.length > 3 && !['that','this','with','from','they','have','will','been','were'].includes(word));
+            significantWords.forEach(word => {
+                if (!JARVIS.state.knowledgeGraph.has(word)) {
+                    JARVIS.state.knowledgeGraph.set(word, { occurrences: 1, firstSeen: Date.now(), contexts: [nlp.category] });
+                } else {
+                    const existing = JARVIS.state.knowledgeGraph.get(word);
+                    existing.occurrences++;
+                    if (!existing.contexts.includes(nlp.category)) existing.contexts.push(nlp.category);
+                }
+            });
+
+            updateStatus();
+        }
+
+        function enhanceResponseWithContext(response, input, nlp) {
+            const recentInteractions = JARVIS.state.conversationHistory.slice(-5);
+            const conversationCount = JARVIS.state.conversationHistory.filter(h => h.type === 'user').length;
+            let contextPrefix = ""; let enhancement = "";
+            if (conversationCount === 1) enhancement = "Welcome to our conversation, sir! ";
+            else if (conversationCount % 15 === 0) enhancement = `We've had ${conversationCount} interactions now. My neural networks are adapting to you. `;
+            const recentTopics = recentInteractions.map(i => i.text?.toLowerCase() || '').join(' ');
+            if (recentTopics.includes('math') && nlp.category === 'math') contextPrefix = "Continuing with our mathematical discussion - ";
+            else if (recentTopics.includes('joke') && /another|more|else/.test(input.toLowerCase())) contextPrefix = "Here's another one for you - ";
+            else if (recentTopics.includes('learn') && nlp.category === 'learning') contextPrefix = "Building on what we've been learning together - ";
+            return enhancement + contextPrefix + response;
+        }
+
+        function initKnowledgeGraph() {
+            const baseKnowledge = [ 'artificial intelligence', 'machine learning', 'neural networks', 'natural language processing', 'computer vision', 'robotics' ];
+            JARVIS.state.knowledgeGraph.clear();
+            baseKnowledge.forEach(concept => {
+                JARVIS.state.knowledgeGraph.set(concept, { type: 'base_knowledge', initialized: Date.now(), category: 'science_technology' });
+            });
+            updateStatus();
+        }
+
+        function loadPersistentData() {
+            try {
+                const keys = ['knowledgeGraph', 'conversationHistory', 'learningData', 'neuralLayers', 'selectedVoice', 'theme', 'tts', 'voiceMuted'];
+                const loadedData = {};
+                keys.forEach(key => {
+                    const stored = localStorage.getItem(`jarvis_${key}`);
+                    if (stored) loadedData[key] = JSON.parse(stored);
+                });
+
+                if (loadedData.knowledgeGraph) {
+                    JARVIS.state.knowledgeGraph = new Map(loadedData.knowledgeGraph);
+                } else {
+                    initKnowledgeGraph();
+                }
+
+                if (loadedData.conversationHistory) {
+                    JARVIS.state.conversationHistory = loadedData.conversationHistory;
+                    loadedData.conversationHistory.slice(-20).forEach(msg => {
+                        if (msg.type === 'user') addToResponse(`👤 <strong>You:</strong> ${escapeHTML(msg.text)}`, 'user');
+                        else addToResponse(`🤖 <strong>JARVIS:</strong> ${escapeHTML(msg.text)}`, 'jarvis');
+                    });
+                }
+
+                if (loadedData.learningData) JARVIS.state.learningData = loadedData.learningData;
+                if (loadedData.neuralLayers && !isNaN(loadedData.neuralLayers)) JARVIS.state.neuralLayers = parseInt(loadedData.neuralLayers, 10);
+                if (loadedData.selectedVoice) JARVIS.state.selectedVoice = loadedData.selectedVoice;
+                if (loadedData.voiceMuted != null) JARVIS.state.voiceMuted = !!loadedData.voiceMuted;
+                if (loadedData.tts) {
+                    JARVIS.state.tts.rate = loadedData.tts.rate ?? JARVIS.state.tts.rate;
+                    JARVIS.state.tts.pitch = loadedData.tts.pitch ?? JARVIS.state.tts.pitch;
+                    JARVIS.state.tts.volume = loadedData.tts.volume ?? JARVIS.state.tts.volume;
+                }
+
+                // Theme restore
+                const theme = loadedData.theme || localStorage.getItem('jarvis_theme');
+                if (theme === 'light') {
+                    JARVIS.state.isDarkTheme = false;
+                    applyTheme();
+                }
+
+                // Sync sliders and mute UI
+                document.getElementById('rate-range').value = String(JARVIS.state.tts.rate);
+                document.getElementById('pitch-range').value = String(JARVIS.state.tts.pitch);
+                document.getElementById('volume-range').value = String(JARVIS.state.tts.volume);
+                updateMuteUI();
+
+                updateStatus();
+                
+            } catch (error) {
+                console.error('Data loading error:', error);
+                addToResponse('🤖 <strong>JARVIS:</strong> Error loading previous session data. Starting fresh.', 'system');
+                initKnowledgeGraph();
+            }
+        }
+
+        function savePersistentData() {
+            try {
+                const dataToSave = {
+                    knowledgeGraph: Array.from(JARVIS.state.knowledgeGraph.entries()),
+                    conversationHistory: JARVIS.state.conversationHistory.slice(-JARVIS.MAX_HISTORY),
+                    learningData: JARVIS.state.learningData.slice(-JARVIS.MAX_LEARNING_DATA),
+                    neuralLayers: JARVIS.state.neuralLayers,
+                    selectedVoice: JARVIS.state.selectedVoice,
+                    theme: JARVIS.state.isDarkTheme ? 'dark' : 'light',
+                    tts: JARVIS.state.tts,
+                    voiceMuted: JARVIS.state.voiceMuted
+                };
+                Object.entries(dataToSave).forEach(([key, value]) => {
+                    localStorage.setItem(`jarvis_${key}`, JSON.stringify(value));
+                });
+            } catch (error) {
+                console.error('Data saving error:', error);
+                if (error.name === 'QuotaExceededError') manageStorageQuota();
+            }
+        }
+
+        function manageStorageQuota() {
+            JARVIS.state.conversationHistory = JARVIS.state.conversationHistory.slice(-50);
+            JARVIS.state.learningData = JARVIS.state.learningData.slice(-100);
+            if (JARVIS.state.knowledgeGraph.size > 300) {
+                const entries = Array.from(JARVIS.state.knowledgeGraph.entries());
+                JARVIS.state.knowledgeGraph.clear();
+                entries.slice(-200).forEach(([key, value]) => { JARVIS.state.knowledgeGraph.set(key, value); });
+            }
+            try {
+                savePersistentData();
+                addToResponse('🤖 <strong>JARVIS:</strong> Storage optimized. Some older data was archived.', 'system');
+            } catch (error) {
+                console.error('Storage optimization failed:', error);
+            }
+        }
+
+        function processInput() {
+            const raw = document.getElementById('user-input').value.trim();
+            if (raw && !JARVIS.state.isProcessing) {
+                const safe = sanitizeInput(raw);
+                addToResponse(`👤 <strong>You:</strong> ${escapeHTML(safe)}`, 'user');
+                processCommand(safe);
+                document.getElementById('user-input').value = '';
+            }
+        }
+
+        function updateProcessingState(processing) {
+            const canvas = document.getElementById('display-canvas');
+            const inputField = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            if (processing) {
+                canvas.classList.add('processing');
+                inputField.disabled = true;
+                sendBtn.classList.add('loading');
+                sendBtn.disabled = true;
+            } else {
+                canvas.classList.remove('processing');
+                inputField.disabled = false;
+                sendBtn.classList.remove('loading');
+                sendBtn.disabled = false;
+            }
+        }
+
+        function clearHistory() {
+            if (!confirm('Clear all conversation history and learned data? This action cannot be undone.')) return;
+            document.getElementById('response').innerHTML = '<p class="jarvis-message">🤖 <strong>JARVIS:</strong> System reset complete. How may I assist you, sir?</p>';
+            JARVIS.state.conversationHistory = [];
+            JARVIS.state.learningData = [];
+            JARVIS.state.knowledgeGraph.clear();
+            JARVIS.state.neuralLayers = 3;
+            ['knowledgeGraph','conversationHistory','learningData','neuralLayers','selectedVoice','theme','tts','voiceMuted']
+                .forEach(k => localStorage.removeItem(`jarvis_${k}`));
+            initKnowledgeGraph();
+            speak("All systems reset. Memory cleared and neural networks reinitialized.", 'neutral');
+            updateStatus();
+        }
+
+        function exportData() {
+            const exportData = {
+                version: '2.2',
+                timestamp: new Date().toISOString(),
+                neuralLayers: JARVIS.state.neuralLayers,
+                knowledgeGraph: Array.from(JARVIS.state.knowledgeGraph.entries()),
+                learningData: JARVIS.state.learningData,
+                conversationHistory: JARVIS.state.conversationHistory,
+                selectedVoice: JARVIS.state.selectedVoice,
+                tts: JARVIS.state.tts,
+                theme: JARVIS.state.isDarkTheme ? 'dark' : 'light'
+            };
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `jarvis-session-${new Date().toISOString().split('T')[0]}-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            speak("Session data exported successfully.", 'happy');
+        }
+
+        function applyTheme() {
+            const root = document.documentElement;
+            if (JARVIS.state.isDarkTheme) {
+                root.style.setProperty('--primary-color', '#00aaff');
+                root.style.setProperty('--secondary-color', '#0077ff');
+                root.style.setProperty('--accent-color', '#00ffaa');
+                root.style.setProperty('--bg-primary', 'rgba(15, 25, 35, 0.95)');
+                root.style.setProperty('--bg-secondary', 'rgba(30, 40, 60, 0.8)');
+                root.style.setProperty('--text-primary', '#e0e6ed');
+                document.body.style.background = 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%)';
+            } else {
+                root.style.setProperty('--primary-color', '#0066cc');
+                root.style.setProperty('--secondary-color', '#004499');  
+                root.style.setProperty('--accent-color', '#00aa77');
+                root.style.setProperty('--bg-primary', 'rgba(255, 255, 255, 0.95)');
+                root.style.setProperty('--bg-secondary', 'rgba(240, 245, 250, 0.9)');
+                root.style.setProperty('--text-primary', '#333333');
+                document.body.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #e8f4f8 50%, #d4f1f4 100%)';
+            }
+        }
+
+        function toggleTheme() {
+            JARVIS.state.isDarkTheme = !JARVIS.state.isDarkTheme;
+            applyTheme();
+            localStorage.setItem('jarvis_theme', JARVIS.state.isDarkTheme ? 'dark' : 'light');
+            savePersistentData();
+            speak(JARVIS.state.isDarkTheme ? "Dark theme activated." : "Light theme activated.", 'neutral');
+        }
+
+        function showHelp() {
+            const helpContent = `
+<div style="line-height: 1.8; padding: 10px;">
+    <h3 style="color: var(--accent-color); margin-bottom: 15px;">🤖 JARVIS Help System</h3>
+    <div style="margin-bottom: 15px;"><strong>🗣️ Voice Commands:</strong><br>Click 'Listen' and speak naturally. Select from multiple voices via the dropdown. You can also mute, stop speaking, and preview voices.</div>
+    <div style="margin-bottom: 15px;"><strong>🧮 Mathematics:</strong><br>"Calculate 15% of 200" • "What's the square root of 144?"</div>
+    <div style="margin-bottom: 15px;"><strong>📚 Learning & Memory:</strong><br>"Remember that water boils at 100°C" • "What do you remember?" • "Search memory for water" • "Forget everything"</div>
+    <div style="margin-bottom: 15px;"><strong>🌐 Web Search:</strong><br>"Tell me about quantum physics" • "Search for recent AI advancements"</div>
+    <div style="margin-bottom: 15px;"><strong>🎭 Entertainment:</strong><br>"Tell me a joke" • "Something funny"</div>
+    <div style="margin-bottom: 15px;"><strong>👁️ Vision:</strong><br>Toggle camera for visual processing</div>
+    <div style="margin-bottom: 15px;"><strong>💾 Data Management:</strong><br>Export conversations • Clear history • Theme and voice switching</div>
+    <div style="background: rgba(0, 150, 255, 0.1); padding: 10px; border-radius: 8px; margin-top: 15px;">
+        <strong>💡 Pro Tips:</strong><br>
+        • Use "List Voices" or "Preview" to debug voice options<br>
+        • My face reflects emotions based on our conversation<br>
+        • I prioritize trusted sources for factual queries (simulated)
+    </div>
+</div>`;
+            addToResponse(helpContent, 'system');
+            speak("Help information displayed. I'm ready to assist!", 'excited');
+        }
+
+        function setupInputHandlers() {
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.addEventListener('click', processInput);
+            document.getElementById('listen-btn').addEventListener('click', startListening);
+            document.getElementById('stop-listen').addEventListener('click', stopListening);
+            document.getElementById('vision-btn').addEventListener('click', toggleVision);
+            document.getElementById('clear-btn').addEventListener('click', clearHistory);
+            document.getElementById('export-btn').addEventListener('click', exportData);
+            document.getElementById('theme-btn').addEventListener('click', toggleTheme);
+            document.getElementById('help-btn').addEventListener('click', showHelp);
+            document.getElementById('list-voices-btn').addEventListener('click', listAvailableVoices);
+            document.getElementById('stop-speak-btn').addEventListener('click', () => { if (synth && synth.speaking) synth.cancel(); });
+            document.getElementById('preview-voice-btn').addEventListener('click', () => speak('This is a short voice preview.', 'neutral'));
+            document.getElementById('mute-btn').addEventListener('click', () => {
+                JARVIS.state.voiceMuted = !JARVIS.state.voiceMuted;
+                updateMuteUI();
+                updateStatus();
+                savePersistentData();
+            });
+            document.getElementById('rate-range').addEventListener('input', (e) => { JARVIS.state.tts.rate = parseFloat(e.target.value); savePersistentData(); });
+            document.getElementById('pitch-range').addEventListener('input', (e) => { JARVIS.state.tts.pitch = parseFloat(e.target.value); savePersistentData(); });
+            document.getElementById('volume-range').addEventListener('input', (e) => { JARVIS.state.tts.volume = parseFloat(e.target.value); savePersistentData(); });
+
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); processInput(); }
+            });
+            userInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 120) + 'px'; });
+            userInput.addEventListener('paste', function() { setTimeout(() => { this.value = sanitizeInput(this.value); }, 0); });
+        }
+
+        function updateMuteUI() {
+            const btn = document.getElementById('mute-btn');
+            const label = document.getElementById('mute-label');
+            if (JARVIS.state.voiceMuted) {
+                btn.textContent = '🔊 Unmute';
+                btn.setAttribute('aria-pressed', 'true');
+                label.textContent = 'Voice: Muted';
+            } else {
+                btn.textContent = '🔇 Mute';
+                btn.setAttribute('aria-pressed', 'false');
+                label.textContent = 'Voice: On';
+            }
+        }
+
+        function handleResize() {
+            if (!renderer || !camera) return;
+            const canvas = document.getElementById('display-canvas');
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => { clearTimeout(timeout); func(...args); };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        async function initializeJARVIS() {
+            try {
+                const threeJsInitialized = initThreeJS();
+                if (!threeJsInitialized) console.warn('Three.js failed to initialize, continuing without visualization');
+
+                const speechInitialized = await initSpeechSynthesis();
+                if (!speechInitialized) {
+                    console.warn('Speech synthesis failed to initialize');
+                    addToResponse('🤖 <strong>JARVIS:</strong> Speech synthesis unavailable. Text mode active.', 'error');
+                }
+
+                const recognitionInitialized = initSpeechRecognition();
+                if (!recognitionInitialized) {
+                    console.warn('Speech recognition not supported');
+                    document.getElementById('listen-btn').disabled = true;
+                    document.getElementById('stop-listen').disabled = true;
+                    addToResponse('🤖 <strong>JARVIS:</strong> Voice recognition not supported on this device.', 'error');
+                }
+
+                loadPersistentData();
+                setupInputHandlers();
+                window.addEventListener('resize', debounce(handleResize, 100));
+                handleResize();
+
+                // Initialize base knowledge if absent
+                if (JARVIS.state.knowledgeGraph.size === 0) initKnowledgeGraph();
+
+                await speak("JARVIS initialized. Neural networks online. Ethereal face projection active. How may I assist you, sir?", 'happy');
+
+            } catch (error) {
+                console.error('JARVIS initialization error:', error);
+                addToResponse('🤖 <strong>JARVIS:</strong> Initialization encountered issues. Operating in safe mode.', 'error');
+                await speak("Initialization encountered issues. Operating in safe mode.", 'error');
+            }
+        }
+
+        function applySavedThemeOnLoad() {
+            const saved = localStorage.getItem('jarvis_theme');
+            if (saved === 'light') JARVIS.state.isDarkTheme = false;
+            applyTheme();
+        }
+
+        // Initialize JARVIS on page load
+        window.addEventListener('load', () => { applySavedThemeOnLoad(); initializeJARVIS(); });
+
+        // Cleanup on window close
+        window.addEventListener('beforeunload', () => {
+            if (recognition && JARVIS.state.isListening) recognition.stop();
+            const vid = document.getElementById('video');
+            if (JARVIS.state.visionActive && vid.srcObject) vid.srcObject.getTracks().forEach(track => track.stop());
+            savePersistentData();
+            if (animationId) cancelAnimationFrame(animationId);
+        });
+    </script>
+</body>
+</html>
