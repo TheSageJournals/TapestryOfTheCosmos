@@ -3,28 +3,805 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fibonacci Harmonics Explorer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tone"></script>
+    <title>Tapestry of the Cosmos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-        }
         body {
+            font-family: Arial, sans-serif;
+            background: url('https://source.unsplash.com/random/1920x1080?cosmos') no-repeat center/cover;
+            color: #fff;
             margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0a0a0a;
-            color: white;
+            padding: 10px;
+            overflow-x: hidden;
+            touch-action: manipulation;
         }
-        header {
-            background: #111;
-            padding: 10px 15px;
-            font-size: 1.2em;
-            font-weight: bold;
+        .container {
+            max-width: 100%;
+            margin: auto;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+        }
+        h1 {
             text-align: center;
-            color: cyan;
+            color: #00FFFF;
+            font-size: 1.5rem;
         }
+        .tab-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        .tab-button {
+            padding: 8px 15px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            touch-action: manipulation;
+        }
+        .tab-button.active {
+            background: #00FFFF;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        canvas {
+            border: 1px solid #fff;
+            background: #fff;
+            margin: 10px auto;
+            display: block;
+            max-width: 90vw;
+            max-height: 90vw;
+        }
+        .plotly-container {
+            max-width: 90vw;
+            max-height: 90vw;
+            margin: 10px auto;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        .input-group {
+            margin: 5px;
+            font-size: 0.9rem;
+        }
+        .color-box {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin: 2px;
+            vertical-align: middle;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(72, 8px);
+            gap: 1px;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .row-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+        .row-label {
+            width: 40px;
+            font-weight: bold;
+            color: #fff;
+            font-size: 0.8rem;
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 5px;
+            border-radius: 3px;
+            pointer-events: none;
+            font-size: 0.8rem;
+            z-index: 100;
+        }
+        #loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .loading-bar {
+            width: 150px;
+            height: 15px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .loading-progress {
+            width: 0;
+            height: 100%;
+            background: #00FFFF;
+            animation: loading 2s infinite;
+        }
+        @keyframes loading {
+            0% { width: 0; }
+            50% { width: 100%; }
+            100% { width: 0; }
+        }
+        .legend {
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+        .legend ul {
+            list-style: none;
+            padding: 0;
+        }
+        @media (max-width: 414px) {
+            canvas, .plotly-container {
+                width: 100% !important;
+                height: auto !important;
+            }
+            .grid {
+                grid-template-columns: repeat(72, 6px);
+            }
+            .tab-button {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            .input-group {
+                flex: 1 1 100%;
+            }
+            .btn-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tapestry of the Cosmos</h1>
+        <div id="warning" class="alert alert-warning text-center">
+            <p><strong>Warning:</strong> This app may blow your device but will certainly blow your mind! Use at self risk.</p>
+            <div class="btn-group mt-2">
+                <button class="btn btn-primary" onclick="proceed(true)">Yes</button>
+                <button class="btn btn-danger" onclick="proceed(false)">No</button>
+            </div>
+        </div>
+        <div id="main" style="display: none;">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="openTab('gridVisualizer')">Grid Visualizer</button>
+                <button class="tab-button" onclick="openTab('primeSieve')">Prime Sieve</button>
+                <button class="tab-button" onclick="openTab('fibonacciSong')">Fibonacci Song</button>
+                <button class="tab-button" onclick="openTab('cymatics')">Cymatics</button>
+                <button class="tab-button" onclick="openTab('cymaticSymphony')">Cymatic Symphony</button>
+                <button class="tab-button" onclick="openTab('about')">About</button>
+            </div>
+            <div id="gridVisualizer" class="tab-content active">
+                <div class="controls">
+                    <div class="input-group">
+                        <label>Grid Size:</label>
+                        <select id="gridSize" class="form-select" onchange="updateGrid()">
+                            <option value="9x24">9x24</option>
+                            <option value="72x72" selected>72x72</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Sectors:</label>
+                        <div id="sectorCheckboxes"></div>
+                    </div>
+                    <div class="input-group">
+                        <label>Digital Roots:</label>
+                        <div id="rootCheckboxes"></div>
+                    </div>
+                    <div class="input-group">
+                        <label>Column Range:</label>
+                        <input type="number" id="startCol" class="form-control" placeholder="Start" min="1" value="1">
+                        <input type="number" id="endCol" class="form-control" placeholder="End" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Show Primes:</label>
+                        <input type="checkbox" id="showPrimes" onchange="cachePoints()">
+                    </div>
+                    <button class="btn btn-primary" onclick="updateGrid()">Update</button>
+                    <button class="btn btn-primary" onclick="exportCanvas()">Export Canvas</button>
+                </div>
+                <div class="legend">
+                    <strong>Digital Roots:</strong>
+                    <ul>
+                        <li><span class="color-box" style="background: #00FFFF"></span> 1: Cyan</li>
+                        <li><span class="color-box" style="background: #00FF00"></span> 2: Green</li>
+                        <li><span class="color-box" style="background: #FFA500"></span> 3: Orange</li>
+                        <li><span class="color-box" style="background: #FF69B4"></span> 4: Pink</li>
+                        <li><span class="color-box" style="background: #228B22"></span> 5: Forest Green</li>
+                        <li><span class="color-box" style="background: #FFFF00"></span> 6: Yellow</li>
+                        <li><span class="color-box" style="background: #800080"></span> 7: Purple</li>
+                        <li><span class="color-box" style="background: #808080"></span> 8: Gray</li>
+                        <li><span class="color-box" style="background: #FF0000"></span> 9: Red</li>
+                    </ul>
+                    <p id="rootCounts"></p>
+                </div>
+                <canvas id="gridCanvas" width="720" height="720"></canvas>
+                <div id="plotlyInteractive" class="plotly-container"></div>
+                <div id="plotlyToroidal" class="plotly-container"></div>
+                <div id="plotlyGlobe" class="plotly-container"></div>
+                <div id="plotlyMobius" class="plotly-container"></div>
+                <div id="plotlyCylinder" class="plotly-container"></div>
+                <div id="plotlyTrends" class="plotly-container"></div>
+                <div id="plotlyPolar" class="plotly-container"></div>
+            </div>
+            <div id="primeSieve" class="tab-content">
+                <div class="controls">
+                    <div class="input-group">
+                        <label for="numberInput">Number:</label>
+                        <input type="number" id="numberInput" class="form-control" placeholder="Enter a number" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label for="startInput">Start:</label>
+                        <input type="number" id="startInput" class="form-control" placeholder="Enter start" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label for="endInput">End:</label>
+                        <input type="number" id="endInput" class="form-control" placeholder="Enter end" min="0">
+                    </div>
+                    <button class="btn btn-primary" onclick="checkPrime()">Check Prime</button>
+                    <button class="btn btn-primary" onclick="findPrimes()">Find Primes</button>
+                    <button class="btn btn-primary" onclick="findNextPrime()">Next Prime</button>
+                    <button class="btn btn-primary" id="mersenneButton" onclick="checkMersenne()" disabled>Check Mersenne</button>
+                    <button class="btn btn-danger" onclick="panicStop()">Panic Stop</button>
+                </div>
+                <div id="primeOutput" class="alert alert-info"></div>
+                <div id="plotPrime" class="plotly-container"></div>
+                <div id="plotDigitalRoot" class="plotly-container"></div>
+                <div id="plotBinary" class="plotly-container"></div>
+            </div>
+            <div id="fibonacciSong" class="tab-content">
+                <div class="controls">
+                    <label for="patternSelect">Playback Pattern:</label>
+                    <select id="patternSelect" class="form-select">
+                        <option value="row-wise">Left-to-Right, Downward</option>
+                        <option value="column-wise">Top-to-Bottom, Left-to-Right</option>
+                        <option value="both">Both Overlap</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="playSong()">Play Song</button>
+                    <button class="btn btn-primary" onclick="stopSong()">Stop Song</button>
+                </div>
+                <div class="legend">
+                    <strong>Digital Roots & Notes:</strong>
+                    <ul>
+                        <li><span class="color-box" style="background: #00FFFF"></span> 1: Cyan (432 Hz)</li>
+                        <li><span class="color-box" style="background: #00FF00"></span> 2: Green (432 Hz)</li>
+                        <li><span class="color-box" style="background: #FFA500"></span> 3: Orange (720 Hz)</li>
+                        <li><span class="color-box" style="background: #FF69B4"></span> 4: Pink (432 Hz)</li>
+                        <li><span class="color-box" style="background: #228B22"></span> 5: Forest Green (432 Hz)</li>
+                        <li><span class="color-box" style="background: #FFFF00"></span> 6: Yellow (720 Hz)</li>
+                        <li><span class="color-box" style="background: #800080"></span> 7: Purple (432 Hz)</li>
+                        <li><span class="color-box" style="background: #808080"></span> 8: Gray (432 Hz)</li>
+                        <li><span class="color-box" style="background: #FF0000"></span> 9: Red (1152 Hz)</li>
+                    </ul>
+                    <p id="songRootCounts"></p>
+                </div>
+                <div id="songGrid"></div>
+            </div>
+            <div id="cymatics" class="tab-content">
+                <div class="controls">
+                    <div class="input-group">
+                        <label for="freq1">Freq 1 (Hz):</label>
+                        <input type="number" id="freq1" class="form-control" placeholder="Enter frequency" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="freq2">Freq 2 (Hz):</label>
+                        <input type="number" id="freq2" class="form-control" placeholder="Enter frequency" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="freq3">Freq 3 (Hz):</label>
+                        <input type="number" id="freq3" class="form-control" placeholder="Enter frequency" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="freq4">Freq 4 (Hz):</label>
+                        <input type="number" id="freq4" class="form-control" placeholder="Enter frequency" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="freq5">Freq 5 (Hz):</label>
+                        <input type="number" id="freq5" class="form-control" placeholder="Enter frequency" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="freq6">Freq 6 (Hz):</label>
+                        <input type="number" id="freq6" class="form-control" placeholder="Enter frequency" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="freq7">Freq 7 (Hz):</label>
+                        <input type="number" id="freq7" class="form-control" placeholder="Enter frequency" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="freq8">Freq 8 (Hz):</label>
+                        <input type="number" id="freq8" class="form-control" placeholder="Enter frequency" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="freq9">Freq 9 (Hz):</label>
+                        <input type="number" id="freq9" class="form-control" placeholder="Enter frequency" min="1">
+                    </div>
+                    <button class="btn btn-primary" onclick="updateCymatics()">Update Pattern</button>
+                    <button class="btn btn-primary" onclick="playCymaticNotes()">Play Frequencies</button>
+                    <button class="btn btn-primary" onclick="toggleCymaticsMode()">Toggle 2D/3D</button>
+                    <button class="btn btn-primary" onclick="clearCymaticsInputs()">Clear All</button>
+                </div>
+                <div id="cymaticsStatus" class="alert alert-info"></div>
+                <canvas id="cymaticsCanvas" width="720" height="720"></canvas>
+                <div id="cymaticsPlotly" class="plotly-container"></div>
+            </div>
+            <div id="cymaticSymphony" class="tab-content">
+                <div class="controls">
+                    <label for="symphonyPattern">Playback Pattern:</label>
+                    <select id="symphonyPattern" class="form-select">
+                        <option value="row-wise">Left-to-Right, Downward</option>
+                        <option value="column-wise">Top-to-Bottom, Left-to-Right</option>
+                        <option value="both">Both Overlap</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="playSymphony()">Play Symphony</button>
+                    <button class="btn btn-primary" onclick="stopSymphony()">Stop Symphony</button>
+                    <button class="btn btn-primary" onclick="toggleSymphonyMode()">Toggle 2D/3D</button>
+                </div>
+                <div class="legend">
+                    <strong>Digital Roots & Notes:</strong>
+                    <ul>
+                        <li><span class="color-box" style="background: #00FFFF"></span> 1: Cyan (130.81 Hz)</li>
+                        <li><span class="color-box" style="background: #00FF00"></span> 2: Green (138.59 Hz)</li>
+                        <li><span class="color-box" style="background: #FFA500"></span> 3: Orange (146.83 Hz)</li>
+                        <li><span class="color-box" style="background: #FF69B4"></span> 4: Pink (155.56 Hz)</li>
+                        <li><span class="color-box" style="background: #228B22"></span> 5: Forest Green (164.81 Hz)</li>
+                        <li><span class="color-box" style="background: #FFFF00"></span> 6: Yellow (174.61 Hz)</li>
+                        <li><span class="color-box" style="background: #800080"></span> 7: Purple (184.99 Hz)</li>
+                        <li><span class="color-box" style="background: #808080"></span> 8: Gray (196.00 Hz)</li>
+                        <li><span class="color-box" style="background: #FF0000"></span> 9: Red (207.65 Hz)</li>
+                    </ul>
+                    <p id="symphonyRootCounts"></p>
+                </div>
+                <canvas id="symphonyCanvas" width="720" height="720"></canvas>
+                <div id="symphonyPlotly" class="plotly-container"></div>
+                <div id="symphonyGrid"></div>
+            </div>
+            <div id="about" class="tab-content">
+                <h2>Unifying Theory of Intelligent Design</h2>
+                <p>The Tapestry of the Cosmos reveals an underlying order in reality, connecting mathematics, music, and physical phenomena. By exploring Fibonacci-derived digital roots, prime numbers, musical scales, and cymatic patterns, this app demonstrates a harmonious structure suggestive of intelligent design.</p>
+                <p><strong>Fibonacci and Digital Roots:</strong> The 9x24 and 72x72 grids, derived from Fibonacci numbers, produce cyclic digital root patterns (mod 9) that mirror cosmic cycles.</p>
+                <p><strong>Primes:</strong> Prime numbers’ digital roots reveal selective patterns (e.g., excluding 6), hinting at a structured numerical order.</p>
+                <p><strong>Music and Cymatics:</strong> Mapping digital roots to musical notes and visualizing frequencies as cymatic patterns connects numbers to sensory experiences, reflecting universal harmonics.</p>
+                <p><strong>Geometric Forms:</strong> Visualizations like Möbius strips and toroidal plots suggest that mathematical patterns manifest in topological structures, supporting a designed reality.</p>
+            </div>
+            <div id="loading">
+                <div class="loading-bar">
+                    <div class="loading-progress"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const COLOR_MAP = {
+            1: '#00FFFF', // Cyan
+            2: '#00FF00', // Green
+            3: '#FFA500', // Orange
+            4: '#FF69B4', // Pink
+            5: '#228B22', // Forest Green
+            6: '#FFFF00', // Yellow
+            7: '#800080', // Purple
+            8: '#808080', // Gray
+            9: '#FF0000'  // Red
+        };
+        const SONG_FREQUENCIES = {
+            1: 432, 2: 432, 3: 720, 4: 432, 5: 432, 6: 720, 7: 432, 8: 432, 9: 1152
+        };
+        const SYMPHONY_FREQUENCIES = {
+            1: 130.81, 2: 138.59, 3: 146.83, 4: 155.56, 5: 164.81, 6: 174.61, 7: 184.99, 8: 196.00, 9: 207.65
+        };
+        const state = {
+            zoom: 1,
+            offsetX: 0,
+            offsetY: 0,
+            isDragging: false,
+            lastX: 0,
+            lastY: 0,
+            points: [],
+            abort: false
+        };
+        let audioContext = null;
+        let isPlaying = false;
+        let lastPixelData = [];
+
+        // Fibonacci and Grid Generation
+        function generateFibonacci(n) {
+            const fib = [1n, 1n]; // Start with [1, 1] to exclude 0
+            for (let i = 2; i < n; i++) {
+                fib[i] = fib[i-1] + fib[i-2];
+            }
+            return fib;
+        }
+
+        function digitalRoot(n) {
+            const mod = Number(n % 9n);
+            return mod === 0 ? 9 : mod;
+        }
+
+        const fibNumbers = generateFibonacci(72);
+        const fibSequences9x24 = Array.from({length: 9}, (_, k) =>
+            Array.from({length: 24}, (_, n) => digitalRoot(BigInt(k + 1) * fibNumbers[n]))
+        );
+        const fibSequences72x72 = Array.from({length: 72}, (_, k) =>
+            Array.from({length: 72}, (_, n) => digitalRoot(BigInt(k + 1) * fibNumbers[n]))
+        );
+
+        // Grid Visualizer
+        const gridCanvas = document.getElementById('gridCanvas');
+        const gridCtx = gridCanvas.getContext('2d');
+        function renderCheckboxes() {
+            const sectorCheckboxes = document.getElementById('sectorCheckboxes');
+            sectorCheckboxes.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = true;
+                checkbox.onchange = () => cachePoints();
+                checkbox.id = `sector${i + 1}`;
+                const label = document.createElement('label');
+                label.textContent = `S${i + 1}`;
+                label.style.color = '#fff';
+                label.style.marginRight = '10px';
+                sectorCheckboxes.appendChild(checkbox);
+                sectorCheckboxes.appendChild(label);
+            }
+            const rootCheckboxes = document.getElementById('rootCheckboxes');
+            rootCheckboxes.innerHTML = '';
+            for (let i = 1; i <= 9; i++) {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = true;
+                checkbox.onchange = () => cachePoints();
+                checkbox.id = `root${i}`;
+                const label = document.createElement('label');
+                label.textContent = i;
+                label.style.color = COLOR_MAP[i];
+                label.style.marginRight = '10px';
+                rootCheckboxes.appendChild(checkbox);
+                rootCheckboxes.appendChild(label);
+            }
+        }
+
+        function cachePoints() {
+            const gridSize = document.getElementById('gridSize').value;
+            const fibSequences = gridSize === '9x24' ? fibSequences9x24 : fibSequences72x72;
+            const maxCols = gridSize === '9x24' ? 24 : 72;
+            const maxRows = gridSize === '9x24' ? 9 : 72;
+            let startCol = parseInt(document.getElementById('startCol').value || 1);
+            let endCol = parseInt(document.getElementById('endCol').value || maxCols);
+            if (isNaN(startCol) || startCol < 1) startCol = 1;
+            if (isNaN(endCol) || endCol < startCol) endCol = maxCols;
+            const selectedSectors = Array.from({length: 8}, (_, i) => document.getElementById(`sector${i+1}`).checked);
+            const selectedRoots = Array.from({length: 9}, (_, i) => document.getElementById(`root${i+1}`).checked);
+            const showPrimes = document.getElementById('showPrimes').checked;
+            const primes = showPrimes ? goldenDigitalRootSieve(1, Math.max(endCol, maxCols)) : [];
+            state.points = [];
+            for (let k = 0; k < maxRows; k++) {
+                if (gridSize === '72x72' && !selectedSectors[Math.floor(k / 9)]) continue;
+                for (let n = startCol - 1; n < endCol; n++) {
+                    if (n >= maxCols) break;
+                    const value = fibSequences[k][n];
+                    if (selectedRoots[value - 1] && (!showPrimes || primes.includes(k + 1))) {
+                        state.points.push({ sequence: k + 1, column: n + 1, value, sector: Math.floor(k / 9) + 1 });
+                    }
+                }
+            }
+            const counts = state.points.reduce((acc, p) => {
+                acc[p.value] = (acc[p.value] || 0) + 1;
+                return acc;
+            }, {});
+            document.getElementById('rootCounts').textContent = `Counts: ${Object.entries(counts).map(([k, v]) => `${k}: ${v}`).join(', ')}`;
+            draw2DGrid();
+            plot3D();
+        }
+
+        function draw2DGrid() {
+            gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+            const gridSize = document.getElementById('gridSize').value;
+            const maxCols = gridSize === '9x24' ? 24 : 72;
+            const cellSize = gridSize === '9x24' ? 720 / 24 * state.zoom : 720 / 72 * state.zoom;
+            gridCtx.save();
+            gridCtx.translate(state.offsetX, state.offsetY);
+            state.points.forEach(point => {
+                const x = (point.column - 1) * cellSize;
+                const y = (point.sequence - 1) * cellSize;
+                gridCtx.fillStyle = COLOR_MAP[point.value];
+                gridCtx.fillRect(x, y, cellSize, cellSize);
+            });
+            gridCtx.restore();
+        }
+
+        function setupCanvasEvents() {
+            let tooltip = null;
+            gridCanvas.addEventListener('mousedown', e => {
+                state.isDragging = true;
+                state.lastX = e.offsetX;
+                state.lastY = e.offsetY;
+            });
+            gridCanvas.addEventListener('mousemove', e => {
+                if (state.isDragging) {
+                    state.offsetX += e.offsetX - state.lastX;
+                    state.offsetY += e.offsetY - state.lastY;
+                    state.lastX = e.offsetX;
+                    state.lastY = e.offsetY;
+                    draw2DGrid();
+                }
+                const gridSize = document.getElementById('gridSize').value;
+                const maxCols = gridSize === '9x24' ? 24 : 72;
+                const cellSize = gridSize === '9x24' ? 720 / 24 * state.zoom : 720 / 72 * state.zoom;
+                const x = (e.offsetX - state.offsetX) / cellSize;
+                const y = (e.offsetY - state.offsetY) / cellSize;
+                const col = Math.floor(x) + 1;
+                const row = Math.floor(y) + 1;
+                const fibSequences = gridSize === '9x24' ? fibSequences9x24 : fibSequences72x72;
+                if (row >= 1 && row <= (gridSize === '9x24' ? 9 : 72) && col >= 1 && col <= maxCols) {
+                    const value = fibSequences[row - 1][col - 1];
+                    if (!tooltip) {
+                        tooltip = document.createElement('div');
+                        tooltip.className = 'tooltip';
+                        document.body.appendChild(tooltip);
+                    }
+                    tooltip.style.left = `${e.pageX + 10}px`;
+                    tooltip.style.top = `${e.pageY + 10}px`;
+                    tooltip.textContent = `Row: ${row}, Col: ${col}, Value: ${value}`;
+                } else if (tooltip) {
+                    tooltip.remove();
+                    tooltip = null;
+                }
+            });
+            gridCanvas.addEventListener('mouseup', () => state.isDragging = false);
+            gridCanvas.addEventListener('wheel', e => {
+                e.preventDefault();
+                state.zoom += e.deltaY < 0 ? 0.1 : -0.1;
+                state.zoom = Math.max(0.5, Math.min(state.zoom, 3));
+                draw2DGrid();
+            });
+            gridCanvas.addEventListener('touchstart', e => {
+                if (e.touches.length === 1) {
+                    state.isDragging = true;
+                    state.lastX = e.touches[0].clientX - gridCanvas.getBoundingClientRect().left;
+                    state.lastY = e.touches[0].clientY - gridCanvas.getBoundingClientRect().top;
+                }
+            });
+            gridCanvas.addEventListener('touchmove', e => {
+                if (state.isDragging && e.touches.length === 1) {
+                    e.preventDefault();
+                    const x = e.touches[0].clientX - gridCanvas.getBoundingClientRect().left;
+                    const y = e.touches[0].clientY - gridCanvas.getBoundingClientRect().top;
+                    state.offsetX += x - state.lastX;
+                    state.offsetY += y - state.lastY;
+                    state.lastX = x;
+                    state.lastY = y;
+                    draw2DGrid();
+                }
+            });
+            gridCanvas.addEventListener('touchend', () => state.isDragging = false);
+        }
+
+        function plot3D() {
+            const gridSize = document.getElementById('gridSize').value;
+            const maxCols = gridSize === '9x24' ? 24 : 72;
+            const maxRows = gridSize === '9x24' ? 9 : 72;
+            const markerSize = gridSize === '9x24' ? 5 : 3;
+            const types = ['Interactive', 'Toroidal', 'Globe', 'Mobius', 'Cylinder', 'Trends', 'Polar'];
+            types.forEach(type => {
+                const container = `plotly${type}`;
+                let data = [];
+                const layout = {
+                    width: Math.min(800, window.innerWidth * 0.9),
+                    height: Math.min(800, window.innerWidth * 0.9),
+                    margin: { t: 0 },
+                    scene: type !== 'Trends' && type !== 'Polar' ? {
+                        xaxis: { title: 'X' },
+                        yaxis: { title: 'Y' },
+                        zaxis: { title: 'Z' }
+                    } : {}
+                };
+                if (type === 'Interactive') {
+                    data = [{
+                        type: 'scatter3d',
+                        x: state.points.map(p => p.sequence / maxRows),
+                        y: state.points.map(p => p.column / maxCols),
+                        z: state.points.map(p => p.value),
+                        mode: 'markers',
+                        marker: { size: markerSize, color: state.points.map(p => COLOR_MAP[p.value]) },
+                        text: state.points.map(p => `Row: ${p.sequence}, Col: ${p.column}, Value: ${p.value}`)
+                    }];
+                } else if (type === 'Toroidal') {
+                    const R = gridSize === '72x72' ? 3 : 1.5;
+                    const r = 0.5;
+                    data = [{
+                        type: 'scatter3d',
+                        x: state.points.map(p => (R + r * Math.cos(p.column * 2 * Math.PI / maxCols)) * Math.cos(p.sequence * 2 * Math.PI / maxRows)),
+                        y: state.points.map(p => (R + r * Math.cos(p.column * 2 * Math.PI / maxCols)) * Math.sin(p.sequence * 2 * Math.PI / maxRows)),
+                        z: state.points.map(p => r * Math.sin(p.column * 2 * Math.PI / maxCols)),
+                        mode: 'markers',
+                        marker: { size: markerSize, color: state.points.map(p => COLOR_MAP[p.value]) },
+                        text: state.points.map(p => `Row: ${p.sequence}, Col: ${p.column}, Value: ${p.value}`)
+                    }];
+                } else if (type === 'Globe') {
+                    data = [{
+                        type: 'scatter3d',
+                        x: state.points.map(p => Math.sin(p.sequence * Math.PI / maxRows) * Math.cos(p.column * 2 * Math.PI / maxCols)),
+                        y: state.points.map(p => Math.sin(p.sequence * Math.PI / maxRows) * Math.sin(p.column * 2 * Math.PI / maxCols)),
+                        z: state.points.map(p => Math.cos(p.sequence * Math.PI / maxRows)),
+                        mode: 'markers',
+                        marker: { size: markerSize, color: state.points.map(p => COLOR_MAP[p.value]) },
+                        text: state.points.map(p => `Row: ${p.sequence}, Col: ${p.column}, Value: ${p.value}`)
+                    }];
+                } else if (type === 'Mobius') {
+                    const R = gridSize === '72x72' ? 3 : 1.5;
+                    data = [{
+                        type: 'scatter3d',
+                        x: state.points.map(p => (R + (p.value - 5) * 0.2 * Math.cos(p.sequence * Math.PI / maxRows)) * Math.cos(p.sequence * 2 * Math.PI / maxRows)),
+                        y: state.points.map(p => (R + (p.value - 5) * 0.2 * Math.cos(p.sequence * Math.PI / maxRows)) * Math.sin(p.sequence * 2 * Math.PI / maxRows)),
+                        z: state.points.map(p => (p.value - 5) * 0.2 * Math.sin(p.sequence * Math.PI / maxRows)),
+                        mode: 'markers',
+                        marker: { size: markerSize, color: state.points.map(p => COLOR_MAP[p.value]) },
+                        text: state.points.map(p => `Row: ${p.sequence}, Col: ${p.column}, Value: ${p.value}`)
+                    }];
+                } else if (type === 'Cylinder') {
+                    data = [{
+                        type: 'scatter3d',
+                        x: state.points.map(p => p.value * 0.2 * Math.cos(p.sequence * 2 * Math.PI / maxRows)),
+                        y: state.points.map(p => p.value * 0.2 * Math.sin(p.sequence * 2 * Math.PI / maxRows)),
+                        z: state.points.map(p => p.column / maxCols),
+                        mode: 'markers',
+                        marker: { size: markerSize, color: state.points.map(p => COLOR_MAP[p.value]) },
+                        text: state.points.map(p => `Row: ${p.sequence}, Col: ${p.column}, Value: ${p.value}`)
+                    }];
+                } else if (type === 'Trends') {
+                    data = state.points.reduce((acc, p) => {
+                        const trace = acc[p.value - 1] || {
+                            type: 'scatter3d',
+                            x: [], y: [], z: [],
+                            mode: 'lines',
+                            name: `Root ${p.value}`,
+                            line: { color: COLOR_MAP[p.value], width: 2 }
+                        };
+                        trace.x.push(p.sequence / maxRows);
+                        trace.y.push(p.column / maxCols);
+                        trace.z.push(p.value);
+                        acc[p.value - 1] = trace;
+                        return acc;
+                    }, []).filter(Boolean);
+                } else if (type === 'Polar') {
+                    data = state.points.reduce((acc, p) => {
+                        const trace = acc[p.value - 1] || {
+                            type: 'scatter3d',
+                            x: [], y: [], z: [],
+                            mode: 'markers',
+                            name: `Root ${p.value}`,
+                            marker: { size: markerSize, color: COLOR_MAP[p.value] },
+                            text: []
+                        };
+                        trace.x.push(p.value * 0.2 * Math.cos(p.sequence * 2 * Math.PI / maxRows));
+                        trace.y.push(p.value * 0.2 * Math.sin(p.sequence * 2 * Math.PI / maxRows));
+                        trace.z.push(p.column / maxCols);
+                        trace.text.push(`Row: ${p.sequence}, Col: ${p.column}, Value: ${p.value}`);
+                        acc[p.value - 1] = trace;
+                        return acc;
+                    }, []).filter(Boolean);
+                }
+                Plotly.newPlot(container, data, layout);
+            });
+        }
+
+        function exportCanvas() {
+            gridCtx.save();
+            gridCtx.setTransform(1, 0, 0, 1, 0, 0);
+            const gridSize = document.getElementById('gridSize').value;
+            const maxCols = gridSize === '9x24' ? 24 : 72;
+            const maxRows = gridSize === '9x24' ? 9 : 72;
+            const cellSize = gridSize === '9x24' ? 720 / 24 : 720 / 72;
+            gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+            state.points.forEach(point => {
+                const x = (point.column - 1) * cellSize;
+                const y = (point.sequence - 1) * cellSize;
+                gridCtx.fillStyle = COLOR_MAP[point.value];
+                gridCtx.fillRect(x, y, cellSize, cellSize);
+            });
+            const link = document.createElement('a');
+            link.href = gridCanvas.toDataURL('image/png');
+            link.download = 'tapestry_grid.png';
+            link.click();
+            gridCtx.restore();
+            draw2DGrid();
+        }
+
+        function updateGrid() {
+            const gridSize = document.getElementById('gridSize').value;
+            const maxCols = gridSize === '9x24' ? 24 : 72;
+            document.getElementById('endCol').value = maxCols;
+            cachePoints();
+        }
+
+        // Prime Sieve
+        let lastInput = { type: null, number: null, start: null, end: null, primes: null };
+        let primeCache = {};
+        function isPrime(n) {
+            if (state.abort) return false;
+            if (n < 2) return false;
+            if (n === 2 || n === 3 || n === 5) return true;
+            if (n % 2 === 0 || n % 5 === 0) return false;
+            for (let i = 3; i <= Math.sqrt(n); i += 2) {
+                if (state.abort) return false;
+                if (n % i === 0) return false;
+            }
+            return true;
+        }
+
+        function isMersennePrime(n) {
+            if (state.abort || !isPrime(n)) return false;
+            let p = 0;
+            let temp = n + 1;
+            while (temp % 2 === 0) {
+                temp /= 2;
+                p++;
+            }
+            return temp === 1 && isPrime(p);
+        }
+
+        function sieveDigitalRoot(start, end, dr) {
+            if (state.abort) return [];
+            if ([3, 9].includes(dr)) return start <= 3 && 3 <= end ? [3] : [];
+            if (dr === 6) return [];
+            const remainder = {1: 1, 2: 2, 4: 4, 5: 5, 7: 7, 8: 8}[dr];
+            const primes = [];
+            start = Math.max(start, dr !== 2 ? 1 : 2);
+            for (let n = start + (remainder - (start % 9) + 9) % 9; n <= end; n += 9) {
+                if (state.abort) return [];
+                if ([2, 3, 5, 11].includes(n) && digitalRoot(n) === dr) {
+                    primes.push(n);
+                    continue;
+                }
+                if (n % 2 === 0 || n % 5 === 0) continue;
+                if (digitalRoot(n) === dr && isPrime(n)) primes.push(n);
+            }
+            return primes;
+        }
+
+        function goldenDigitalRootSieve(start, end) {
+            if (state.abort) return [];
+            const cacheKey = `${start}-${end}`;
+            if (primeCache[cacheKey]) return primeCache[cacheKey];
+            const primes = new Set();
+            for (let dr of [1, 2, 4, 5, 7, 8, 3, 9]) {
+                if (state.abort) return [];
+                sieveDigitalRoot(start, end, dr).forEach(p => primes.add(p));
+            }
+            const result = Array.from(primes).sort((a, b) => a - b);
+            primeCache[cacheKey] = result;
+            return result;
+        }
+
+        function checkPrime() {
+            state.abort = false;
+            showLoading();
+            const n = parseInt(document.getElementById('numberInput').value);
+            const output = document.getElementById('primeOutput');
+            if (isNaN(n) || n < 0) {
+                output.textContent = 'Invalid inpu        }
         #tabs {
             display: flex;
             overflow-x: auto;
