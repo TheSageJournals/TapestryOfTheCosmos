@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tapestry Φeld Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow-x: hidden; }
+        .control-panel { transition: all 0.3s ease; }
+        .collapsible { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .collapsible.open { max-height: 1000px; }
+        input[type="checkbox"] { cursor: pointer; }
+        label { cursor: pointer; user-select: none; }
+        @media (max-width: 768px) {
+            canvas { width: 100% !important; height: auto !important; }
+            .control-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        .cosmic-glow {
+            animation: cosmic-pulse 2s ease-in-out infinite;
+        }
+        @keyframes cosmic-pulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(138, 43, 226, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(138, 43, 226, 0.9); }
+        }
+    </style>
+</head>
+<body>
+    <div class="w-full min-h-screen bg-gray-900">
+      <div class="max-w-7xl mx-auto p-2 sm:p-4 space-y-2 sm:space-y-4">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-3 sm:p-4 rounded-lg">
+          <h2 class="text-xl sm:text-3xl font-bold text-white mb-1">Tapestry Φeld Explorer</h2>
+          <p class="text-gray-300 text-xs sm:text-sm">46,656,000 points • Interactive 3D rendering • Cosmic Evolution from t=0</p>
+        </div>
+        
+        <!-- Canvas Container -->
+        <div class="flex justify-center bg-gray-950 rounded-lg p-2">
+          <canvas id="canvas" class="border-2 border-gray-700 rounded cursor-crosshair bg-gray-950" style="max-width: 100%;"></canvas>
+        </div>
+        
+        <!-- BIG BANG EVOLUTION PANEL -->
+        <div id="bigBangPanel" class="bg-gradient-to-r from-purple-900 to-pink-900 rounded-lg overflow-hidden cosmic-glow">
+          <div class="flex justify-between items-center p-3 bg-black bg-opacity-40 cursor-pointer" id="bigBangHeader">
+            <h3 class="text-white font-semibold flex items-center gap-2">
+              <i data-lucide="zap" size="18"></i> 🌌 BIG BANG EVOLUTION MODE
+            </h3>
+            <i data-lucide="chevron-down" size="20" class="text-gray-400" id="bigBangChevron"></i>
+          </div>
+          <div id="bigBangControls" class="collapsible">
+            <div class="p-3 sm:p-4 space-y-3 bg-black bg-opacity-20">
+              <div class="bg-gray-900 bg-opacity-80 p-3 rounded border border-purple-500">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-purple-300 font-bold text-lg" id="cosmicPhase">PRE-SINGULARITY</div>
+                  <div class="text-cyan-300 text-sm" id="cosmicAge">Age: 0s</div>
+                </div>
+                <div class="text-gray-300 text-xs mb-2" id="phaseDesc">Awaiting cosmic initialization...</div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div class="text-gray-300">Temp: <span id="cosmicTemp" class="text-orange-400">0 K</span></div>
+                  <div class="text-gray-300">Energy: <span id="fieldEnergy" class="text-yellow-400">0</span></div>
+                  <div class="text-gray-300">Structures: <span id="structureCount" class="text-green-400">0</span></div>
+                  <div class="text-gray-300">Expansion: <span id="expansionRate" class="text-blue-400">0x</span></div>
+                </div>
+              </div>
+              
+              <div class="flex gap-2 flex-wrap">
+                <button id="startBigBang" class="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition text-sm font-bold">
+                  <i data-lucide="zap" size="16"></i> <span>INITIATE BIG BANG</span>
+                </button>
+                <button id="stopBigBang" class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition text-sm">
+                  <i data-lucide="square" size="16"></i> <span>Stop</span>
+                </button>
+                <select id="evolutionSpeed" class="px-3 py-2 bg-gray-800 text-white rounded text-sm border border-purple-500">
+                  <option value="0.02">Slow Motion (0.02x)</option>
+                  <option value="0.05">Slow (0.05x)</option>
+                  <option value="0.1" selected>Normal (0.1x)</option>
+                  <option value="0.2">Fast (0.2x)</option>
+                  <option value="0.5">Rapid (0.5x)</option>
+                </select>
+              </div>
+              
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 text-white cursor-pointer text-sm">
+                  <input type="checkbox" id="autoEffects" class="w-4 h-4 cursor-pointer" checked> 
+                  <span>Auto Effects (Glow, Trails, Rotation)</span>
+                </label>
+                <label class="flex items-center gap-2 text-white cursor-pointer text-sm">
+                  <input type="checkbox" id="autoViewSwitch" class="w-4 h-4 cursor-pointer" checked> 
+                  <span>Auto View Switching per Phase</span>
+                </label>
+                <label class="flex items-center gap-2 text-white cursor-pointer text-sm">
+                  <input type="checkbox" id="showParticles" class="w-4 h-4 cursor-pointer" checked> 
+                  <span>Show Particle Effects</span>
+                </label>
+              </div>
+              
+              <div class="space-y-2">
+                <label class="text-white text-sm font-semibold">Evolution Timeline Log:</label>
+                <textarea id="evolutionLog" class="w-full h-24 bg-gray-900 text-green-400 p-2 rounded text-xs font-mono border border-purple-500" readonly></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Main Controls -->
+        <div class="bg-gray-800 rounded-lg overflow-hidden">
+          <div class="flex justify-between items-center p-3 bg-gray-750 cursor-pointer" id="mainControlHeader">
+            <h3 class="text-white font-semibold flex items-center gap-2">
+              <i data-lucide="settings" size="18"></i> Main Controls
+            </h3>
+            <i data-lucide="chevron-down" size="20" class="text-gray-400" id="mainControlChevron"></i>
+          </div>
+          <div id="mainControls" class="collapsible open">
+            <div class="p-3 sm:p-4 space-y-4">
+              <div class="flex gap-2 flex-wrap">
+                <button id="playPause" class="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition text-sm">
+                  <i data-lucide="play" size="16"></i> <span>Play</span>
+                </button>
+                <button id="reset" class="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition text-sm">
+                  <i data-lucide="rotate-ccw" size="16"></i> <span>Reset</span>
+                </button>
+                <button id="screenshot" class="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition text-sm">
+                  <i data-lucide="camera" size="16"></i> <span>Capture</span>
+                </button>
+              </div>
+              
+              <div class="space-y-2">
+                <label id="timeLabel" class="text-white text-sm font-medium">Time: 0.00 / 48</label>
+                <input type="range" id="timeSlider" min="0" max="48" step="0.1" value="0" class="w-full">
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Render Mode -->
+        <div class="bg-gray-800 rounded-lg overflow-hidden">
+          <div class="flex justify-between items-center p-3 bg-gray-750 cursor-pointer" id="renderModeHeader">
+            <h3 class="text-white font-semibold flex items-center gap-2">
+              <i data-lucide="layout" size="18"></i> Render Mode
+            </h3>
+            <i data-lucide="chevron-down" size="20" class="text-gray-400" id="renderModeChevron"></i>
+          </div>
+          <div id="renderModeControls" class="collapsible open">
+            <div class="p-3 sm:p-4 space-y-3">
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 control-grid">
+                <button id="renderSlice" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm">
+                  <i data-lucide="layers" size="16"></i> <span>Slice</span>
+                </button>
+                <button id="renderVolume" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm">
+                  <i data-lucide="box" size="16"></i> <span>Volume</span>
+                </button>
+                <button id="renderMulti" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm">
+                  <i data-lucide="grid-3x3" size="16"></i> <span>Multi</span>
+                </button>
+                <button id="renderWireframe" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm">
+                  <i data-lucide="scan" size="16"></i> <span>Wire</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Visualization Mode -->
+        <div class="bg-gray-800 rounded-lg overflow-hidden">
+          <div class="flex justify-between items-center p-3 bg-gray-750 cursor-pointer" id="vizModeHeader">
+            <h3 class="text-white font-semibold flex items-center gap-2">
+              <i data-lucide="eye" size="18"></i> Visualization
+            </h3>
+            <i data-lucide="chevron-down" size="20" class="text-gray-400" id="vizModeChevron"></i>
+          </div>
+          <div id="vizModeControls" class="collapsible open">
+            <div class="p-3 sm:p-4 space-y-3">
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 control-grid">
+                <button id="vizHeat" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm">
+                  <i data-lucide="thermometer" size="16"></i> <span>Heat</span>
+                </button>
+                <button id="vizIso" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm">
+                  <i data-lucide="activity" size="16"></i> <span>Iso</span>
+                </button>
+                <button id="vizRoots" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm">
+                  <i data-lucide="hash" size="16"></i> <span>Roots</span>
+                </button>
+                <button id="vizGradient" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm">
+                  <i data-lucide="move" size="16"></i> <span>Grad</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Shape & Effects -->
+        <div class="bg-gray-800 rounded-lg overflow-hidden">
+          <div class="flex justify-between items-center p-3 bg-gray-750 cursor-pointer" id="shapeHeader">
+            <h3 class="text-white font-semibold flex items-center gap-2">
+              <i data-lucide="shapes" size="18"></i> Shapes & Effects
+            </h3>
+            <i data-lucide="chevron-down" size="20" class="text-gray-400" id="shapeChevron"></i>
+          </div>
+          <div id="shapeControls" class="collapsible">
+            <div class="p-3 sm:p-4 space-y-3">
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <button id="shapeCircle" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm bg-teal-600 text-white">
+                  <i data-lucide="circle" size="16"></i> <span>Circle</span>
+                </button>
+                <button id="shapeSquare" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm bg-gray-700 text-gray-300">
+                  <i data-lucide="square" size="16"></i> <span>Square</span>
+                </button>
+                <button id="shapeDiamond" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm bg-gray-700 text-gray-300">
+                  <i data-lucide="diamond" size="16"></i> <span>Diamond</span>
+                </button>
+                <button id="shapeHex" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm bg-gray-700 text-gray-300">
+                  <i data-lucide="hexagon" size="16"></i> <span>Hex</span>
+                </button>
+                <button id="shapeStar" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm bg-gray-700 text-gray-300">
+                  <i data-lucide="star" size="16"></i> <span>Star</span>
+                </button>
+                <button id="shapeCross" class="flex items-center justify-center gap-1 px-3 py-2 rounded transition text-sm bg-gray-700 text-gray-300">
+                  <i data-lucide="plus" size="16"></i> <span>Cross</span>
+                </button>
+              </div>
+              
+              <div class="space-y-2">
+                <label class="text-white text-sm">Point Size: <span id="pointSizeLabel">1.0</span></label>
+                <input type="range" id="pointSize" min="0.5" max="3" step="0.1" value="1" class="w-full">
+              </div>
+              
+              <div class="flex gap-4 flex-wrap text-sm">
+                <label class="flex items-center gap-2 text-white cursor-pointer">
+                  <input type="checkbox" id="showGrid" class="w-4 h-4 cursor-pointer"> <span>Grid</span>
+                </label>
+                <label class="flex items-center gap-2 text-white cursor-pointer">
+                  <input type="checkbox" id="showGlow" class="w-4 h-4 cursor-pointer"> <span>Glow</span>
+                </label>
+                <label class="flex items-center gap-2 text-white cursor-pointer">
+                  <input type="checkbox" id="showTrails" class="w-4 h-4 cursor-pointer"> <span>Trails</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Slice Controls -->
+        <div id="sliceControlPanel" class="bg-gray-800 rounded-lg overflow-hidden" style="display: none;">
+          <div class="flex justify-between items-center p-3 bg-gray-750 cursor-pointer" id="sliceHeader">
+            <h3 class="text-white font-semibold flex items-center gap-2">
+              <i data-lucide="layers" size="18"></i> Slice Settings
+            </h3>
+            <i data-lucide="chevron-down" size="20" class="text-gray-400" id="sliceChevron"></i>
+          </div>
+          <div id="sliceControls" class="collapsible open">
+            <div class="p-3 sm:p-4 space-y-3">
+              <div class="grid grid-cols-3 gap-2">
+                <button id="axisXY" class="px-3 py-2 rounded text-sm">XY</button>
+                <button id="axisXZ" class="px-3 py-2 rounded text-sm">XZ</button>
+                <button id="axisYZ" class="px-3 py-2 rounded text-sm">YZ</button>
+              </div>
+              <div class="space-y-2">
+                <label id="sliceLabel" class="text-white text-sm">Slice Position: 180</label>
+                <input type="range" id="slicePos" min="0" max="360" step="5" value="180" class="w-full">
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Volume Controls -->
+        <div id="volumeControlPanel" class="bg-gray-800 rounded-lg overflow-hidden" style="display: none;">
+          <div class="flex justify-between items-center p-3 bg-gray-750 cursor-pointer" id="volumeHeader">
+            <h3 class="text-white font-semibold flex items-center gap-2">
+              <i data-lucide="box" size="18"></i> Volume Settings
+            </h3>
+            <i data-lucide="chevron-down" size="20" class="text-gray-400" id="volumeChevron"></i>
+          </div>
+          <div id="volumeControls" class="collapsible open">
+            <div class="p-3 sm:p-4 space-y-3">
+              <div class="space-y-2">
+                <label class="text-white text-sm">Threshold: <span id="thresholdLabel">1500</span></label>
+                <input type="range" id="threshold" min="0" max="3000" step="50" value="1500" class="w-full">
+              </div>
+              <div class="space-y-2">
+                <label class="text-white text-sm">Opacity: <span id="opacityLabel">0.30</span></label>
+                <input type="range" id="opacity" min="0.05" max="1" step="0.05" value="0.3" class="w-full">
+              </div>
+              <div class="space-y-2">
+                <label id="zoomLabel" class="text-white text-sm">Zoom: 1.0x</label>
+                <div class="flex gap-2 items-center">
+                  <button id="zoomOut" class="flex items-center justify-center p-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition">
+                    <i data-lucide="zoom-out" size="16"></i>
+                  </button>
+                  <input type="range" id="zoom" min="0.5" max="3" step="0.1" value="1" class="flex-1">
+                  <button id="zoomIn" class="flex items-center justify-center p-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition">
+                    <i data-lucide="zoom-in" size="16"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <button id="qualityLow" class="px-3 py-2 rounded text-sm">Low</button>
+                <button id="qualityMed" class="px-3 py-2 rounded text-sm">Med</button>
+                <button id="qualityHigh" class="px-3 py-2 rounded text-sm">High</button>
+              </div>
+              <label class="flex items-center gap-2 text-white cursor-pointer text-sm">
+                <input type="checkbox" id="autoRotate" class="w-4 h-4 cursor-pointer"> <span>Auto-Rotate</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Multi-Slice Controls -->
+        <div id="multiSliceControlPanel" class="bg-gray-800 rounded-lg overflow-hidden" style="display: none;">
+          <div class="flex justify-between items-center p-3 bg-gray-750 cursor-pointer" id="multiHeader">
+            <h3 class="text-white font-semibold flex items-center gap-2">
+              <i data-lucide="grid-3x3" size="18"></i> Multi-Slice Settings
+            </h3>
+            <i data-lucide="chevron-down" size="20" class="text-gray-400" id="multiChevron"></i>
+          </div>
+          <div id="multiSliceControls" class="collapsible open">
+            <div class="p-3 sm:p-4">
+              <div class="grid grid-cols-3 gap-2">
+                <button id="multiAxisXY" class="px-3 py-2 rounded text-sm">XY</button>
+                <button id="multiAxisXZ" class="px-3 py-2 rounded text-sm">XZ</button>
+                <button id="multiAxisYZ" class="px-3 py-2 rounded text-sm">YZ</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Info Panel -->
+        <div class="bg-gray-800 p-3 rounded text-gray-300 text-xs">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div><strong>S₀:</strong> 576</div>
+            <div><strong>Scale:</strong> 5</div>
+            <div><strong>Modes:</strong> 39</div>
+            <div><strong>Grid:</strong> 72×72×72</div>
+            <div><strong>Domain:</strong> 0-360³</div>
+            <div><strong>Pisano:</strong> 24×2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+
+      const S0 = 576, A_m = [432, 432, 720, 432, 432, 720, 432, 432, 1152], s = 5;
+      const pairs = [[1,8], [2,7], [3,6], [4,5]], A_pair = [36, 36, 100, 36];
+
+      const phi = (x, y, z, t) => {
+        let total = S0;
+        for (let n = 0; n < 3; n++) {
+          for (let m = 1; m <= 9; m++) {
+            const amp = A_m[m-1] / Math.pow(s, n), freq_t = (m / 24.0) * Math.pow(s, n);
+            const freq_s = (m / 360.0) * Math.pow(s, n), phase = 2 * Math.PI * (m - 1) / 9 + 2 * Math.PI * n / 9;
+            total += amp * Math.sin(2 * Math.PI * (freq_t * t + freq_s * x + freq_s * y + freq_s * z) + phase);
+          }
+        }
+        for (let idx = 0; idx < pairs.length; idx++) {
+          const [m, nn] = pairs[idx];
+          for (let n = 0; n < 3; n++) {
+            const amp = A_pair[idx] / Math.pow(s, n), freq_t = ((m + nn) / 48.0) * Math.pow(s, n);
+            const freq_s = ((m + nn) / 720.0) * Math.pow(s, n), phase = 2 * Math.PI * (m + nn - 2) / 18 + 2 * Math.PI * n / 18;
+            total += amp * Math.sin(2 * Math.PI * (freq_t * t + freq_s * x + freq_s * y + freq_s * z) + phase);
+          }
+        }
+        return total;
+      };
+
+      const digitalRoot = (num) => {
+        let n = Math.abs(Math.round(num));
+        while (n > 9) n = n.toString().split('').reduce((a, b) => a + parseInt(b), 0);
+        return n === 0 ? 9 : n;
+      };
+
+      const valueToColor = (val, min, max) => {
+        const norm = Math.max(0, Math.min(1, (val - min) / (max - min)));
+        let r, g, b;
+        if (norm < 0.25) { const t = norm / 0.25; r = 0; g = Math.floor(t * 255); b = 255; }
+        else if (norm < 0.5) { const t = (norm - 0.25) / 0.25; r = 0; g = 255; b = Math.floor((1 - t) * 255); }
+        else if (norm < 0.75) { const t = (norm - 0.5) / 0.25; r = Math.floor(t * 255); g = 255; b = 0; }
+        else { const t = (norm - 0.75) / 0.25; r = 255; g = Math.floor((1 - t) * 255); b = 0; }
+        return { r, g, b };
+      };
+
+      const digitalRootColor = (root) => {
+        const colors = [
+          { r: 0, g: 255, b: 255 }, { r: 0, g: 255, b: 0 }, { r: 255, g: 165, b: 0 },
+          { r: 255, g: 192, b: 203 }, { r: 34, g: 139, b: 34 }, { r: 255, g: 255, b: 0 },
+          { r: 128, g: 0, b: 128 }, { r: 128, g: 128, b: 128 }, { r: 255, g: 0, b: 0 }
+        ];
+        return colors[root - 1] || { r: 255, g: 255, b: 255 };
+      };
+
+      const rotatePoint = (x, y, z, rx, ry) => {
+        let y1 = y * Math.cos(rx) - z * Math.sin(rx), z1 = y * Math.sin(rx) + z * Math.cos(rx);
+        let x2 = x * Math.cos(ry) - z1 * Math.sin(ry), z2 = x * Math.sin(ry) + z1 * Math.cos(ry);
+        return { x: x2, y: y1, z: z2 };
+      };
+
+      const project3D = (x, y, z, w, h) => {
+        const scale = 500 / (500 + z) * zoom;
+        return { x: w / 2 + x * scale, y: h / 2 + y * scale, scale };
+      };
+
+      const drawShape = (ctx, x, y, size, color, alpha) => {
+        ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
+        ctx.beginPath();
+        
+        if (showGlow) {
+          ctx.shadowBlur = size * 3;
+          ctx.shadowColor = `rgba(${color.r},${color.g},${color.b},0.8)`;
+        }
+        
+        switch(pointShape) {
+          case 'circle': ctx.arc(x, y, size, 0, Math.PI * 2); break;
+          case 'square': ctx.rect(x - size, y - size, size * 2, size * 2); break;
+          case 'diamond':
+            ctx.moveTo(x, y - size); ctx.lineTo(x + size, y);
+            ctx.lineTo(x, y + size); ctx.lineTo(x - size, y); ctx.closePath(); break;
+          case 'hex':
+            for (let i = 0; i < 6; i++) {
+              const angle = Math.PI / 3 * i, hx = x + size * Math.cos(angle), hy = y + size * Math.sin(angle);
+              if (i === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
+            }
+            ctx.closePath(); break;
+          case 'star':
+            for (let i = 0; i < 10; i++) {
+              const angle = Math.PI / 5 * i, r = i % 2 === 0 ? size : size / 2;
+              const sx = x + r * Math.cos(angle - Math.PI / 2), sy = y + r * Math.sin(angle - Math.PI / 2);
+              if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+            }
+            ctx.closePath(); break;
+          case 'cross':
+            const w = size / 3;
+            ctx.rect(x - w, y - size, w * 2, size * 2);
+            ctx.rect(x - size, y - w, size * 2, w * 2); break;
+        }
+        ctx.fill(); ctx.shadowBlur = 0;
+      };
+
+      // State variables
+      let time = 0, isPlaying = false, vizMode = 'volume', renderMode = 'slice';
+      let sliceAxis = 'z', slicePos = 180, showGrid = false, showGlow = false, showTrails = false;
+      let selectedPoint = null, threshold = 1500, opacity = 0.3;
+      let rotation = { x: 0.3, y: 0.3 }, zoom = 1, autoRotate = false;
+      let volumeQuality = 'medium', pointShape = 'circle', pointSize = 1;
+      let animationId = null, autoRotateId = null, isDragging = false;
+      let lastMouse = { x: 0, y: 0 };
+      
+      // Big Bang Evolution variables
+      let evolutionMode = false, evolutionSpeed = 0.1, evolutionInterval = null;
+      let autoEffects = true, autoViewSwitch = true, showParticles = true;
+      let particleSystem = [];
+      
+      const cosmicPhases = [
+        { name: 'QUANTUM SINGULARITY', t: [0, 0.5], temp: 1e32, desc: 'φ-field compressed to infinite density. All harmonics unified at t=0.', 
+          view: 'volume', viz: 'gradient', threshold: 2800, effects: {glow: true, trails: false, rotate: false},
+          structure: { compression: 0.1, harmonicBoost: 5, spatialScale: 0.01, timeScale: 10 } },
+        { name: 'INFLATION EPOCH', t: [0.5, 2], temp: 1e28, desc: 'Exponential expansion! Lattice crystallizes from quantum foam. Space-time fabric forms.', 
+          view: 'volume', viz: 'volume', threshold: 2200, effects: {glow: true, trails: true, rotate: true},
+          structure: { compression: 1, harmonicBoost: 3, spatialScale: 0.1, timeScale: 5, expansion: 2 } },
+        { name: 'HARMONIC NUCLEATION', t: [2, 6], temp: 1e15, desc: 'First Pisano resonances emerge. 9 fundamental modes begin coupling.', 
+          view: 'multiSlice', viz: 'heatmap', threshold: 1800, effects: {glow: true, trails: false, rotate: false},
+          structure: { compression: 1, harmonicBoost: 2, spatialScale: 0.3, timeScale: 3, modeSelection: [1,2,3,4,5,6,7,8,9] } },
+        { name: 'LATTICE CONDENSATION', t: [6, 12], temp: 1e10, desc: '72×72×72 grid stabilizes. Digital root patterns crystallize into matter.', 
+          view: 'slice', viz: 'digital', threshold: 1500, effects: {glow: false, trails: false, rotate: false},
+          structure: { compression: 1, harmonicBoost: 1, spatialScale: 0.5, timeScale: 2, gridLock: true } },
+        { name: 'QUARK-GLUON PLASMA', t: [12, 18], temp: 1e8, desc: 'Field harmonics form quarks. Fundamental particles condense from φ-field.', 
+          view: 'volume', viz: 'gradient', threshold: 1900, effects: {glow: true, trails: false, rotate: true},
+          structure: { compression: 1, harmonicBoost: 1.5, spatialScale: 0.7, timeScale: 1.5, clustering: 0.3 } },
+        { name: 'COSMIC WEB FORMATION', t: [18, 26], temp: 1e6, desc: 'Large-scale filaments emerge. Dark matter halos form along field gradients.', 
+          view: 'wireframe', viz: 'volume', threshold: 1600, effects: {glow: false, trails: true, rotate: true},
+          structure: { compression: 1, harmonicBoost: 1, spatialScale: 1, timeScale: 1, filaments: true, clustering: 0.5 } },
+        { name: 'PROTOGALACTIC CLOUDS', t: [26, 34], temp: 1e4, desc: 'Rotating vortices in φ-field. Gas clouds collapse into proto-galaxies.', 
+          view: 'volume', viz: 'heatmap', threshold: 1700, effects: {glow: true, trails: true, rotate: true},
+          structure: { compression: 1.2, harmonicBoost: 0.8, spatialScale: 1.2, timeScale: 0.8, vorticity: true, clustering: 0.7 } },
+        { name: 'GALAXY FORMATION', t: [34, 40], temp: 1e3, desc: 'Spiral arms crystallize from field topology. Milky Way takes shape.', 
+          view: 'volume', viz: 'volume', threshold: 1400, effects: {glow: true, trails: true, rotate: true},
+          structure: { compression: 1.5, harmonicBoost: 0.7, spatialScale: 1.5, timeScale: 0.5, spiral: true, arms: 4, clustering: 0.9 } },
+        { name: 'STELLAR IGNITION', t: [40, 45], temp: 300, desc: 'High-energy field nodes collapse. First stars ignite and forge heavy elements.', 
+          view: 'slice', viz: 'heatmap', threshold: 2200, effects: {glow: true, trails: false, rotate: false},
+          structure: { compression: 2, harmonicBoost: 0.5, spatialScale: 2, timeScale: 0.3, stars: true, clustering: 1.2 } },
+        { name: 'SOLAR SYSTEM BIRTH', t: [45, 48], temp: 50, desc: 'Local φ-field disk forms. Sun ignites. Planetary resonances lock into orbits.', 
+          view: 'multiSlice', viz: 'digital', threshold: 1500, effects: {glow: false, trails: false, rotate: false},
+          structure: { compression: 3, harmonicBoost: 0.3, spatialScale: 3, timeScale: 0.1, disk: true, planets: 8, resonance: true } }
+      ];
+      
+      // Enhanced phi function with structural evolution
+      function phiEvolved(x, y, z, t, phase) {
+        if (!phase) return phi(x, y, z, t);
+        
+        const s = phase.structure;
+        let px = x, py = y, pz = z, pt = t;
+        
+        // Apply spatial scaling (expansion/compression)
+        if (s.expansion) {
+          const expansionFactor = 1 + (t - phase.t[0]) * s.expansion;
+          px = 180 + (x - 180) / expansionFactor;
+          py = 180 + (y - 180) / expansionFactor;
+          pz = 180 + (z - 180) / expansionFactor;
+        } else if (s.compression) {
+          px = 180 + (x - 180) * s.compression;
+          py = 180 + (y - 180) * s.compression;
+          pz = 180 + (z - 180) * s.compression;
+        }
+        
+        // Apply spatial and time scaling
+        px *= s.spatialScale;
+        py *= s.spatialScale;
+        pz *= s.spatialScale;
+        pt *= s.timeScale;
+        
+        // Base field value
+        let total = S0;
+        
+        // Compute harmonics with phase-specific modulation
+        const modeList = s.modeSelection || [1,2,3,4,5,6,7,8,9];
+        for (let n = 0; n < 3; n++) {
+          for (let m of modeList) {
+            const amp = (A_m[m-1] / Math.pow(5, n)) * s.harmonicBoost;
+            const freq_t = (m / 24.0) * Math.pow(5, n);
+            const freq_s = (m / 360.0) * Math.pow(5, n);
+            const phase_angle = 2 * Math.PI * (m - 1) / 9 + 2 * Math.PI * n / 9;
+            total += amp * Math.sin(2 * Math.PI * (freq_t * pt + freq_s * px + freq_s * py + freq_s * pz) + phase_angle);
+          }
+        }
+        
+        // Add structural features
+        if (s.filaments) {
+          // Cosmic web filaments along axes
+          const filX = Math.sin(px / 30) * Math.cos(py / 30);
+          const filY = Math.sin(py / 30) * Math.cos(pz / 30);
+          const filZ = Math.sin(pz / 30) * Math.cos(px / 30);
+          total += (filX + filY + filZ) * 200;
+        }
+        
+        if (s.vorticity) {
+          // Rotating vortex pattern
+          const cx = x - 180, cy = y - 180, cz = z - 180;
+          const r = Math.sqrt(cx*cx + cy*cy);
+          const theta = Math.atan2(cy, cx);
+          const vortex = Math.sin(r / 20 - theta * 3 + pt * 0.5) * Math.exp(-r / 100);
+          total += vortex * 300;
+        }
+        
+        if (s.spiral) {
+          // Spiral galaxy arms
+          const cx = x - 180, cy = y - 180, cz = z - 180;
+          const r = Math.sqrt(cx*cx + cy*cy);
+          const theta = Math.atan2(cy, cx);
+          for (let arm = 0; arm < s.arms; arm++) {
+            const armAngle = arm * 2 * Math.PI / s.arms;
+            const spiralAngle = armAngle + r / 50;
+            const armDist = Math.abs(((theta - spiralAngle + Math.PI) % (2 * Math.PI)) - Math.PI);
+            if (armDist < 0.5) {
+              total += 400 * Math.exp(-armDist * 5) * Math.exp(-Math.abs(cz) / 40);
+            }
+          }
+        }
+        
+        if (s.stars) {
+          // Discrete stellar nodes
+          const cellSize = 40;
+          const cellX = Math.floor(x / cellSize);
+          const cellY = Math.floor(y / cellSize);
+          const cellZ = Math.floor(z / cellSize);
+          const starSeed = (cellX * 73 + cellY * 179 + cellZ * 283) % 100;
+          if (starSeed < 15) {
+            const localX = x % cellSize;
+            const localY = y % cellSize;
+            const localZ = z % cellSize;
+            const dist = Math.sqrt((localX-cellSize/2)**2 + (localY-cellSize/2)**2 + (localZ-cellSize/2)**2);
+            total += 800 * Math.exp(-dist * 0.5);
+          }
+        }
+        
+        if (s.disk) {
+          // Protoplanetary disk
+          const cx = x - 180, cy = y - 180, cz = z - 180;
+          const r = Math.sqrt(cx*cx + cy*cy);
+          const diskThickness = Math.exp(-Math.abs(cz) / 10);
+          const diskProfile = Math.exp(-r / 60) * diskThickness;
+          total += diskProfile * 500;
+          
+          // Planetary resonances
+          if (s.planets && s.resonance) {
+            for (let p = 1; p <= s.planets; p++) {
+              const orbit = 30 + p * 15;
+              const angle = pt * 2 * Math.PI / (orbit * 0.1) + p * Math.PI / 4;
+              const px_planet = 180 + orbit * Math.cos(angle);
+              const py_planet = 180 + orbit * Math.sin(angle);
+              const distToPlanet = Math.sqrt((x-px_planet)**2 + (y-py_planet)**2 + (z-180)**2);
+              total += 200 * Math.exp(-distToPlanet / 5);
+            }
+          }
+        }
+        
+        if (s.clustering) {
+          // Add density clustering
+          const clusterScale = 50;
+          const clusterX = Math.sin(px / clusterScale) * Math.cos(py / clusterScale);
+          const clusterY = Math.sin(py / clusterScale) * Math.cos(pz / clusterScale);
+          const clusterZ = Math.sin(pz / clusterScale) * Math.cos(px / clusterScale);
+          total += (clusterX + clusterY + clusterZ) * 150 * s.clustering;
+        }
+        
+        return total;
+      }
+      
+      function getCurrentPhase() {
+        for (let p of cosmicPhases) if (time >= p.t[0] && time < p.t[1]) return p;
+        return cosmicPhases[cosmicPhases.length - 1];
+      }
+      
+      function initParticles() {
+        particleSystem = [];
+        const count = 100;
+        for (let i = 0; i < count; i++) {
+          particleSystem.push({
+            x: Math.random() * 360, y: Math.random() * 360, z: Math.random() * 360,
+            vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, vz: (Math.random() - 0.5) * 5,
+            life: Math.random(), size: Math.random() * 2 + 1
+          });
+        }
+      }
+      
+      function updateParticles(phase) {
+        if (!showParticles) return;
+        const expansion = phase.name.includes('INFLATION') ? 1.05 : 1.001;
+        particleSystem.forEach(p => {
+          p.x += p.vx * expansion; p.y += p.vy * expansion; p.z += p.vz * expansion;
+          if (p.x < 0) p.x = 360; if (p.x > 360) p.x = 0;
+          if (p.y < 0) p.y = 360; if (p.y > 360) p.y = 0;
+          if (p.z < 0) p.z = 360; if (p.z > 360) p.z = 0;
+          p.life -= 0.001;
+          if (p.life <= 0) {
+            p.x = Math.random() * 360; p.y = Math.random() * 360; p.z = Math.random() * 360;
+            p.life = 1;
+          }
+        });
+      }
+      
+      function drawParticles() {
+        if (!showParticles || renderMode !== 'volume') return;
+        const w = canvas.width, h = canvas.height;
+        particleSystem.forEach(p => {
+          const c = {x: p.x - 180, y: p.y - 180, z: p.z - 180};
+          const rot = rotatePoint(c.x, c.y, c.z, rotation.x, rotation.y);
+          const proj = project3D(rot.x, rot.y, rot.z, w, h);
+          if (proj.x > 0 && proj.x < w && proj.y > 0 && proj.y < h) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${p.life * 0.5})`;
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, p.size * proj.scale, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+      }
+      
+      function updateEvolutionDisplay() {
+        const phase = getCurrentPhase();
+        document.getElementById('cosmicPhase').textContent = phase.name;
+        document.getElementById('phaseDesc').textContent = phase.desc;
+        
+        const ageStr = time < 1 ? `${(time * 1e6).toFixed(0)} µs` : 
+                       time < 60 ? `${time.toFixed(2)} s` : 
+                       time < 3600 ? `${(time/60).toFixed(1)} min` : 
+                       `${(time/3600).toFixed(2)} hr`;
+        document.getElementById('cosmicAge').textContent = `Age: ${ageStr}`;
+        document.getElementById('cosmicTemp').textContent = phase.temp >= 1e6 ? phase.temp.toExponential(1) + ' K' : phase.temp.toLocaleString() + ' K';
+        
+        let energy = 0, structures = 0;
+        const step = 60;
+        for (let x = 0; x < 360; x += step) {
+          for (let y = 0; y < 360; y += step) {
+            for (let z = 0; z < 360; z += step) {
+              const val = evolutionMode ? phiEvolved(x, y, z, time, phase) : phi(x, y, z, time);
+              const e = Math.abs(val - S0);
+              energy += e;
+              if (e > 500) structures++;
+            }
+          }
+        }
+        document.getElementById('fieldEnergy').textContent = Math.round(energy);
+        document.getElementById('structureCount').textContent = structures;
+        document.getElementById('expansionRate').textContent = (1 + time * 0.1).toFixed(1) + 'x';
+        
+        if (autoViewSwitch) {
+          if (renderMode !== phase.view) updateRenderMode(phase.view);
+          if (vizMode !== phase.viz) updateVizMode(phase.viz);
+          threshold = phase.threshold;
+          document.getElementById('threshold').value = threshold;
+          document.getElementById('thresholdLabel').textContent = threshold;
+        }
+        
+        if (autoEffects) {
+          showGlow = phase.effects.glow;
+          showTrails = phase.effects.trails;
+          document.getElementById('showGlow').checked = showGlow;
+          document.getElementById('showTrails').checked = showTrails;
+          
+          if (phase.effects.rotate && !autoRotate) {
+            autoRotate = true;
+            document.getElementById('autoRotate').checked = true;
+            startAutoRotate();
+          } else if (!phase.effects.rotate && autoRotate) {
+            autoRotate = false;
+            document.getElementById('autoRotate').checked = false;
+            if (autoRotateId) clearTimeout(autoRotateId);
+          }
+        }
+      }
+      
+      function logEvent(msg) {
+        const log = document.getElementById('evolutionLog');
+        log.value += `[t=${time.toFixed(2)}] ${msg}\n`;
+        log.scrollTop = log.scrollHeight;
+      }
+      
+      function startBigBangEvolution() {
+        if (evolutionMode) return;
+        evolutionMode = true;
+        time = 0;
+        isPlaying = true;
+        updatePlayPauseButton();
+        
+        const log = document.getElementById('evolutionLog');
+        log.value = '═══════════════════════════════════\n';
+        log.value += '   BIG BANG INITIATED - t=0\n';
+        log.value += '═══════════════════════════════════\n\n';
+        
+        logEvent('💥 SINGULARITY: φ-field emerges from void!');
+        initParticles();
+        animate();
+        
+        let lastPhase = null;
+        evolutionInterval = setInterval(() => {
+          if (!evolutionMode || !isPlaying) {
+            clearInterval(evolutionInterval);
+            return;
+          }
+          
+          const phase = getCurrentPhase();
+          updateEvolutionDisplay();
+          
+          if (!lastPhase || lastPhase.name !== phase.name) {
+            logEvent(`⚡ PHASE: ${phase.name}`);
+            logEvent(`   ${phase.desc.substring(0, 60)}...`);
+            
+            if (phase.name.includes('INFLATION')) logEvent('🌊 S
